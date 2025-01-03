@@ -21,6 +21,25 @@
       "sourceFileMap": {
         "/Views": "${workspaceFolder}/Views"
       }
+    },
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "cwd": "c:/Users/arthu/OneDrive - MINISTÉRIO DO TRABALHO E PREVIDÊNCIA/Área de Trabalho/UFPI/2024.2/TEORIA E APLICAÇÕES EM GRAFOS/PostMan",
+      "program": "c:/Users/arthu/OneDrive - MINISTÉRIO DO TRABALHO E PREVIDÊNCIA/Área de Trabalho/UFPI/2024.2/TEORIA E APLICAÇÕES EM GRAFOS/PostMan/build/Debug/outDebug",
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
     }
   ]
 }
