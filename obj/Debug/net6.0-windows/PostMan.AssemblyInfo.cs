@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PostMan")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b083a71cdde072cd9f2998d2749bbd2add116f7c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5479a40248f6662cf9a79a4d0fb0766a87cc5bc2")]
 [assembly: System.Reflection.AssemblyProductAttribute("PostMan")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PostMan")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

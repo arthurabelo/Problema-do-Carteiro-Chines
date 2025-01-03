@@ -136,11 +136,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\arthu\\OneDrive - MINISTÉRIO DO TRABALHO E PREVIDÊNCIA\\Área de Trabalho\\UFPI\\2024.2\\TEORIA E APLICAÇÕES EM GRAFOS\\Trabalho carteiro chinês\\PostMan\\PostMan.csproj",
+      "projectUniqueName": "C:\\Users\\arthu\\OneDrive - MINISTÉRIO DO TRABALHO E PREVIDÊNCIA\\Área de Trabalho\\UFPI\\2024.2\\TEORIA E APLICAÇÕES EM GRAFOS\\PostMan\\PostMan.csproj",
       "projectName": "PostMan",
-      "projectPath": "C:\\Users\\arthu\\OneDrive - MINISTÉRIO DO TRABALHO E PREVIDÊNCIA\\Área de Trabalho\\UFPI\\2024.2\\TEORIA E APLICAÇÕES EM GRAFOS\\Trabalho carteiro chinês\\PostMan\\PostMan.csproj",
+      "projectPath": "C:\\Users\\arthu\\OneDrive - MINISTÉRIO DO TRABALHO E PREVIDÊNCIA\\Área de Trabalho\\UFPI\\2024.2\\TEORIA E APLICAÇÕES EM GRAFOS\\PostMan\\PostMan.csproj",
       "packagesPath": "C:\\Users\\arthu\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\arthu\\OneDrive - MINISTÉRIO DO TRABALHO E PREVIDÊNCIA\\Área de Trabalho\\UFPI\\2024.2\\TEORIA E APLICAÇÕES EM GRAFOS\\Trabalho carteiro chinês\\PostMan\\obj\\",
+      "outputPath": "C:\\Users\\arthu\\OneDrive - MINISTÉRIO DO TRABALHO E PREVIDÊNCIA\\Área de Trabalho\\UFPI\\2024.2\\TEORIA E APLICAÇÕES EM GRAFOS\\PostMan\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\arthu\\AppData\\Roaming\\NuGet\\NuGet.Config"
