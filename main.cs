@@ -12,7 +12,7 @@ public class ChinesePostmanProblem : Form
     private const int ID_DELETE_EDGE = 2;
     private const int ID_EXECUTE_PCC = 3;
 
-    private int[][] graph;
+    private List<int>[][] graph;
     private List<Edge> duplicatedEdges = new List<Edge>();
     private int size = 1;
     private double zoom = 1.0;
@@ -95,112 +95,120 @@ public class ChinesePostmanProblem : Form
         };
     }
 
-    private int[][] CreateGraph(int size)
+    private List<int>[][] CreateGraph(int size)
     {
-        var graph = new int[size][]; // Cria um vetor de inteiros para representar o grafo
-        for (int i = 0; i < size; i++) // Percorre as linhas do grafo
+        var graph = new List<int>[size][];
+        for (int i = 0; i < size; i++)
         {
-            graph[i] = new int[size]; // Cria um vetor de inteiros para representar a linha do grafo com o tamanho igual ao número de vértices por linha
+            graph[i] = new List<int>[size];
+            for (int j = 0; j < size; j++)
+            {
+                graph[i][j] = new List<int>();
+            }
         }
         return graph;
     }
 
-    private void ResizeGraph(ref int[][] graph, int oldSize, int newSize)
+    private void ResizeGraph(ref List<int>[][] graph, int oldSize, int newSize)
     {
-        Array.Resize(ref graph, newSize); // Redimensiona o grafo (o parâmetro ref indica a referência do objeto e equivale ao * no C)
-        for (int i = 0; i < newSize; i++) // Percorre as linhas do grafo
+        Array.Resize(ref graph, newSize);
+        for (int i = 0; i < newSize; i++)
         {
-            if (i >= oldSize) // Se a linha não existe, então cria uma nova linha
+            if (i >= oldSize)
             {
-                graph[i] = new int[newSize]; // Cria uma nova linha com o novo tamanho
+                graph[i] = new List<int>[newSize];
+                for (int j = 0; j < newSize; j++)
+                {
+                    graph[i][j] = new List<int>();
+                }
             }
             else
             {
-                Array.Resize(ref graph[i], newSize); // Redimensiona as linhas existentes para o novo tamanho
+                Array.Resize(ref graph[i], newSize);
+                for (int j = oldSize; j < newSize; j++)
+                {
+                    graph[i][j] = new List<int>();
+                }
             }
         }
     }
 
-    private void InsertEdge(ref int[][] graph, ref int size, int u, int v, int weight, bool isDuplicated = false)
+    private void InsertEdge(ref List<int>[][] graph, ref int size, int u, int v, int weight, bool isDuplicated = false)
     {
-        if (u >= size || v >= size) // Se os vértices não existem, então redimensiona o grafo
+        if (u >= size || v >= size)
         {
-            int newSize = Math.Max(u, v) + 1; // Calcula o novo tamanho do grafo
-            ResizeGraph(ref graph, size, newSize); // Redimensiona o grafo
-            size = newSize; // Atualiza o tamanho do grafo
+            int newSize = Math.Max(u, v) + 1;
+            ResizeGraph(ref graph, size, newSize);
+            size = newSize;
         }
-        graph[u][v] = weight; // Adiciona a aresta u -> v
-        graph[v][u] = weight; // Adiciona a aresta v -> u
+        graph[u][v].Add(weight);
+        graph[v][u].Add(weight);
         if (isDuplicated)
         {
             duplicatedEdges.Add(new Edge { U = u, V = v });
         }
     }
 
-    private void DeleteEdge(ref int[][] graph, ref int size, int u, int v)
+    private void DeleteEdge(ref List<int>[][] graph, ref int size, int u, int v)
     {
-        if (u >= size || v >= size) return; // Se os vértices não existem, então não faz nada
-        graph[u][v] = 0; // Remove a aresta u -> v
-        graph[v][u] = 0; // Remove a aresta v -> u
+        if (u >= size || v >= size) return;
+        if (graph[u][v].Count > 0) graph[u][v].RemoveAt(graph[u][v].Count - 1);
+        if (graph[v][u].Count > 0) graph[v][u].RemoveAt(graph[v][u].Count - 1);
 
-        int newSize = size; // Inicializa o novo tamanho do grafo
+        int newSize = size;
         bool hasEdge = false;
-        for (int i = newSize - 1; i >= 0; i--) // Percorre as linhas de baixo para cima
+        for (int i = newSize - 1; i >= 0; i--)
         {
-            for (int j = newSize - 1; j >= 0; j--) // Percorre as colunas da direita para esquerda
+            for (int j = newSize - 1; j >= 0; j--)
             {
-                if (graph[i][j] > 0) // Se encontrar uma aresta
+                if (graph[i][j].Count > 0)
                 {
-                    hasEdge = true; // Indica que foi encontrada uma aresta
-                    break; // Sai do loop de colunas
+                    hasEdge = true;
+                    break;
                 }
             }
-            if (hasEdge) break; // Sai do loop de linhas
-            newSize--; // Caso não tenha encontrado nenhuma aresta na linha, diminui o tamanho do grafo
+            if (hasEdge) break;
+            newSize--;
         }
-        if (newSize < size) // Se o tamanho do grafo diminuiu, então redimensiona o grafo
+        if (newSize < size)
         {
-            ResizeGraph(ref graph, size, newSize); // Redimensiona o grafo
-            size = newSize; // Atualiza o tamanho do grafo
+            ResizeGraph(ref graph, size, newSize);
+            size = newSize;
         }
     }
 
-    private bool EulerianGraph(int[][] graph, int size)
+    private bool EulerianGraph(List<int>[][] graph, int size)
     {
-        int[] grau = new int[size]; // Cria um vetor de inteiros para armazenar o grau de cada vértice
-        for (int i = 0; i < size; i++) // Percorre as linhas do grafo
+        int[] grau = new int[size];
+        for (int i = 0; i < size; i++)
         {
-            for (int j = 0; j < size; j++) // Percorre as colunas do grafo
+            for (int j = 0; j < size; j++)
             {
-                if (graph[i][j] > 0) // Se existe uma aresta entre os vértices i e j
-                {
-                    grau[i]++; // Incrementa o grau do vértice i
-                }
+                grau[i] += graph[i][j].Count;
             }
         }
-        return grau.All(g => g % 2 == 0); // Retorna verdadeiro se todos os vértices tiverem grau par
+        return grau.All(g => g % 2 == 0);
     }
 
-    private void Hierholzer(int[][] matriz, int size, int start)
+    private void Hierholzer(List<int>[][] matriz, int size, int start)
     {
-        var tempMatriz = matriz.Select(row => row.ToArray()).ToArray(); // Cria uma cópia da matriz
-        var stack = new Stack<int>(); // Cria uma pilha para armazenar os vértices
-        var hierholzerPath = new List<int>(); // Cria uma lista para armazenar o caminho de Hierholzer
+        var tempMatriz = matriz.Select(row => row.Select(col => col.ToList()).ToArray()).ToArray();
+        var stack = new Stack<int>();
+        var hierholzerPath = new List<int>();
 
-        stack.Push(start); // Adiciona o vértice inicial na pilha
+        stack.Push(start);
 
-        while (stack.Count > 0) // Repete enquanto a pilha não estiver vazia
+        while (stack.Count > 0)
         {
-            int vertice = stack.Peek(); // Obtém o vértice do topo da pilha
-            int sum = tempMatriz[vertice].Sum(); // Calcula a soma dos pesos das arestas do vértice
-            if (sum > 0) // Se a soma dos pesos for maior que zero, então tem aresta
+            int vertice = stack.Peek();
+            if (tempMatriz[vertice].Any(col => col.Count > 0))
             {
-                int destino = Array.FindIndex(tempMatriz[vertice], w => w > 0); // Obtém o primeiro vértice adjacente com peso positivo
-                stack.Push(destino); // Adiciona o vértice adjacente na pilha
+                int destino = Array.FindIndex(tempMatriz[vertice], col => col.Count > 0);
+                stack.Push(destino);
                 Console.WriteLine($"{vertice} > {destino}");
 
-                tempMatriz[vertice][destino] = 0; // Remove a aresta entre os vértices para marcar como visitado
-                tempMatriz[destino][vertice] = 0; // Remove a aresta entre os vértices para marcar como visitado
+                tempMatriz[vertice][destino].RemoveAt(0);
+                tempMatriz[destino][vertice].RemoveAt(0);
             }
             else
             {
@@ -215,56 +223,54 @@ public class ChinesePostmanProblem : Form
 
     private int FindMinIndex(int[] dist, bool[] visited)
     {
-        int min = int.MaxValue; // Inicializa a distância mínima com o valor máximo (infinito)
-        int minIndex = -1; // Inicializa o índice do vértice com menor distância com -1
+        int min = int.MaxValue;
+        int minIndex = -1;
 
         for (int i = 0; i < dist.Length; i++)
         {
-            if (!visited[i] && dist[i] <= min) // Se o vértice não foi visitado e a distância é menor ou igual a mínima
+            if (!visited[i] && dist[i] <= min)
             {
-                min = dist[i]; // Atualiza a distância mínima
-                minIndex = i; // Atualiza o índice do vértice com a distância mínima
+                min = dist[i];
+                minIndex = i;
             }
         }
 
-        return minIndex; // Retorna o índice do vértice com a menor distância
+        return minIndex;
     }
 
-    private (int, List<int>) Dijkstra(int[][] graph, int size, int orig, int dest, List<int> path)
+    private (int, List<int>) Dijkstra(List<int>[][] graph, int size, int orig, int dest, List<int> path)
     {
-        // dist armazena um array com as distâncias de cada vértice até o vértice de origem
-        int[] dist = Enumerable.Repeat(int.MaxValue, size).ToArray(); // Cria um vetor de inteiros com o valor máximo(infinito) para cada vértice
-        bool[] visited = new bool[size]; // Cria um vetor de booleanos para marcar os vértices visitados
-        int[] prev = new int[size]; // Cria um vetor de inteiros para armazenar o vértice anterior de cada vértice
-        dist[orig] = 0; // A distância do vértice de origem é zero
+        int[] dist = Enumerable.Repeat(int.MaxValue, size).ToArray();
+        bool[] visited = new bool[size];
+        int[] prev = new int[size];
+        dist[orig] = 0;
 
         for (int count = 0; count < size - 1; count++)
         {
-            int u = FindMinIndex(dist, visited); // Encontra o vértice com a menor distância que ainda não foi visitado
-            if (u == -1) break; // Se todos os vértices foram visitados, então sai do loop
-            visited[u] = true; // Marca o vértice como visitado
+            int u = FindMinIndex(dist, visited);
+            if (u == -1) break;
+            visited[u] = true;
             for (int v = 0; v < size; v++)
             {
-                // Se o vértice não foi visitado, existe uma aresta entre u e v, a distância do vértice mais próximo(u) for diferente de infinito e a soma da distância do vértice mais próximo(u) com o peso da aresta u -> v for menor que a distância do vértice v(infinito, inicialmente)
-                if (!visited[v] && graph[u][v] > 0 && dist[u] != int.MaxValue && dist[u] + graph[u][v] < dist[v])
+                if (!visited[v] && graph[u][v].Count > 0 && dist[u] != int.MaxValue && dist[u] + graph[u][v].Min() < dist[v])
                 {
-                    dist[v] = dist[u] + graph[u][v]; // Atualiza a distância do vértice v à origem
-                    prev[v] = u; // Atualiza o predecessor do vértice v
+                    dist[v] = dist[u] + graph[u][v].Min();
+                    prev[v] = u;
                 }
             }
         }
 
-        for (int vert = dest; vert != orig; vert = prev[vert]) // Percorre o caminho do destino até a origem
+        for (int vert = dest; vert != orig; vert = prev[vert])
         {
-            path.Add(vert); // Adiciona o vértice no caminho
+            path.Add(vert);
         }
-        path.Add(orig); // Adiciona o vértice de origem no caminho
-        path.Reverse(); // Inverte a ordem dos vértices para obter o caminho correto
+        path.Add(orig);
+        path.Reverse();
 
-        return (dist[dest], path); // Retorna a distância e o caminho
+        return (dist[dest], path);
     }
 
-    private List<int> MinCostPerfectMatching(int[][] graph, int size, int[] imparVertices, int imparCount, int[][] matching, List<int> path)
+    private List<int> MinCostPerfectMatching(List<int>[][] graph, int size, int[] imparVertices, int imparCount, List<int>[][] matching, List<int> path)
     {
         for (int i = 0; i < imparCount; i++)
         {
@@ -273,62 +279,64 @@ public class ChinesePostmanProblem : Form
                 int u = imparVertices[i];
                 int v = imparVertices[j];
                 var (cost, _) = Dijkstra(graph, size, u, v, path);
-                matching[u][v] = cost;
-                matching[v][u] = cost;
+                matching[u][v].Add(cost);
+                matching[v][u].Add(cost);
             }
         }
         return path;
     }
 
-    private void FindImparVertices(int[][] graph, int size, out int[] imparVertices, out int imparCount)
+    private void FindImparVertices(List<int>[][] graph, int size, out int[] imparVertices, out int imparCount)
     {
-        // O parâmetro out transforma em variável global
-        int[] graus = new int[size]; // Cria um vetor de inteiros para armazenar o grau de cada vértice
-        imparVertices = new int[size]; // Cria um vetor de inteiros para armazenar os vértices com grau ímpar
+        int[] graus = new int[size];
+        imparVertices = new int[size];
         imparCount = 0;
 
         for (int i = 0; i < size; i++)
         {
             for (int j = 0; j < size; j++)
             {
-                if (graph[i][j] > 0) // Se existe uma aresta entre os vértices i e j
+                if (graph[i][j].Count > 0)
                 {
-                    graus[i]++; // Incrementa o grau do vértice i
+                    graus[i]++;
                 }
             }
-            if (graus[i] % 2 != 0) // Se o grau do vértice i for ímpar
+            if (graus[i] % 2 != 0)
             {
-                imparVertices[imparCount++] = i; // Adiciona o vértice i no vetor de vértices ímpares e incrementa o contador de vértices ímpares
+                imparVertices[imparCount++] = i;
             }
         }
     }
 
 
-    private void DuplicateEdges(int[][] graph, int size, List<int> path)
+    private void DuplicateEdges(List<int>[][] graph, int size, List<int> path)
     {
-        duplicatedEdges.Clear(); // Limpa a lista de arestas duplicadas
+        duplicatedEdges.Clear();
 
         for (int k = 0; k < path.Count - 1; k++)
         {
-            // Adiciona a aresta duplicada entre os vértices do caminho mínimo
-            InsertEdge(ref graph, ref size, path[k], path[k + 1], graph[path[k]][path[k + 1]], true);
+            InsertEdge(ref graph, ref size, path[k], path[k + 1], graph[path[k]][path[k + 1]].Min(), true);
         }
     }
 
-    private void Pcc(int[][] graph, int size, int startVertex)
+    private void Pcc(List<int>[][] graph, int size, int startVertex)
     {
-        if (EulerianGraph(graph, size)) // Se o grafo for euleriano a solução é trivial
+        if (EulerianGraph(graph, size))
         {
-            Hierholzer(graph, size, startVertex); // Chama a função Hierholzer (caminho euleriano)
+            Hierholzer(graph, size, startVertex);
         }
-        else // Se o grafo não for euleriano, então é necessário duplicar as arestas do caminho mínimo entre os vértices ímpares
+        else
         {
             FindImparVertices(graph, size, out int[] imparVertices, out int imparCount);
 
-            var matching = new int[size][];
+            var matching = new List<int>[size][];
             for (int i = 0; i < size; i++)
             {
-                matching[i] = new int[size];
+                matching[i] = new List<int>[size];
+                for (int j = 0; j < size; j++)
+                {
+                    matching[i][j] = new List<int>();
+                }
             }
 
             List<int> path = new List<int>();
@@ -339,7 +347,7 @@ public class ChinesePostmanProblem : Form
         }
     }
 
-    private void DrawGraph(Graphics g, int[][] graph, int size, Rectangle rect, double zoom, int offsetX, int offsetY)
+    private void DrawGraph(Graphics g, List<int>[][] graph, int size, Rectangle rect, double zoom, int offsetX, int offsetY)
     {
         int radius = 20;
         int centerX = rect.Width / 2 + offsetX;
@@ -365,11 +373,14 @@ public class ChinesePostmanProblem : Form
         {
             for (int j = i + 1; j < size; j++)
             {
-                if (graph[i][j] > 0)
+                if (graph[i][j].Count > 0)
                 {
-                    g.DrawLine(Pens.Black, positions[i], positions[j]); // Desenha a aresta
-                    var midPoint = new Point((positions[i].X + positions[j].X) / 2, (positions[i].Y + positions[j].Y) / 2); // Calcula o meio da aresta
-                    g.DrawString(graph[i][j].ToString(), this.Font, Brushes.Black, midPoint); // Insere o peso da aresta
+                    foreach (var weight in graph[i][j])
+                    {
+                        g.DrawLine(Pens.Black, positions[i], positions[j]);
+                        var midPoint = new Point((positions[i].X + positions[j].X) / 2, (positions[i].Y + positions[j].Y) / 2);
+                        g.DrawString(weight.ToString(), this.Font, Brushes.Black, midPoint);
+                    }
                 }
             }
         }
@@ -379,7 +390,7 @@ public class ChinesePostmanProblem : Form
             foreach (var edge in duplicatedEdges)
             {
                 var midPoint = new Point((positions[edge.U].X + positions[edge.V].X) / 2, (positions[edge.U].Y + positions[edge.V].Y) / 2);
-                var controlPoint = new Point(midPoint.X + 20, midPoint.Y - 20); // Ponto de controle para a parábola
+                var controlPoint = new Point(midPoint.X + 20, midPoint.Y - 20);
                 var graphpath = new GraphicsPath();
                 graphpath.AddBezier(positions[edge.U], controlPoint, controlPoint, positions[edge.V]);
                 g.DrawPath(pen, graphpath);
@@ -388,7 +399,7 @@ public class ChinesePostmanProblem : Form
 
         for (int i = 0; i < size; i++)
         {
-            if (graph[i].Any(w => w > 0))
+            if (graph[i].Any(col => col.Count > 0))
             {
                 g.FillEllipse(Brushes.White, positions[i].X - radius, positions[i].Y - radius, radius * 2, radius * 2);
                 g.DrawEllipse(Pens.Black, positions[i].X - radius, positions[i].Y - radius, radius * 2, radius * 2);
@@ -419,6 +430,11 @@ public class ChinesePostmanProblem : Form
                 actionButton.Click += (sender, e) =>
                 {
                     int startVertex = int.Parse(inputStart.Text);
+                    if (inputStart.Text == "" || startVertex >= size)
+                    {
+                        MessageBox.Show("O vértice não existe", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
                     Pcc(graph, size, startVertex);
                     HidePrompt();
                     this.Invalidate();
