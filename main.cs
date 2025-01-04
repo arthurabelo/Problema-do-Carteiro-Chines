@@ -8,11 +8,7 @@ using System.Drawing.Drawing2D;
 
 public class ChinesePostmanProblem : Form
 {
-    private const int ID_ADD_EDGE = 1; // Identificador para adicionar aresta
-    private const int ID_DELETE_EDGE = 2; // Identificador para deletar aresta
-    private const int ID_EXECUTE_PCC = 3; // Identificador para executar o PCC
-
-    private List<int>[][] graph; // Grafo é uma matriz de listas de inteiros
+    private List<int>[][] graph; // O grafo é uma matriz de listas de inteiros (lista de adjacência com lista que possibilita arestas paralelas)
     private int size = 1; // Tamanho do grafo
     private double zoom = 1.0; // Zoom
     private int offsetX = 0, offsetY = 0; // Deslocamento
@@ -29,8 +25,8 @@ public class ChinesePostmanProblem : Form
     {
         this.Text = "Problema do Carteiro Chinês";
         this.Size = new Size(800, 400);
-        this.graph = CreateGraph(size);
-        this.positions = new Point[size];
+        this.graph = CreateGraph(size); // Inicializa o grafo
+        this.positions = new Point[size]; // Inicializa as posições dos vértices para desenho
 
         var addButton = new Button { Text = "Adicionar Aresta", Location = new Point(10, 10), Size = new Size(100, 30) };
         addButton.Click += (sender, e) => PromptForInput(true, false);
@@ -127,7 +123,7 @@ public class ChinesePostmanProblem : Form
         };
     }
 
-    private List<int>[][] CreateGraph(int size)
+    private List<int>[][] CreateGraph(int size) // Cria um grafo
     {
         var graph = new List<int>[size][]; // Cria um array de listas de inteiros para representar o grafo
         for (int i = 0; i < size; i++) // Percorre as linhas do grafo
@@ -219,6 +215,7 @@ public class ChinesePostmanProblem : Form
         return grau.All(g => g % 2 == 0); // Retorna verdadeiro se todos os vértices tiverem grau par
     }
 
+    // Executa o algoritmo de Hierholzer para encontrar o caminho de Euler e resolver o Problema do Carteiro Chinês
     private void Hierholzer(List<int>[][] matriz, int size, int start)
     {
         var tempMatriz = matriz.Select(row => row.Select(col => col.ToList()).ToArray()).ToArray(); // Cria uma cópia da matriz
@@ -308,22 +305,68 @@ public class ChinesePostmanProblem : Form
         return (dist[dest], path); // Retorna a distância mínima e o caminho mínimo
     }
 
-    private List<int> MinCostPerfectMatching(List<int>[][] graph, int size, int[] imparVertices, int imparCount, List<int>[][] matching, List<int> path)
+    // Calcula o matching mínimo perfeito
+    private void MinCostPerfectMatching(List<int>[][] graph, int size, int[] imparVertices, int imparCount, List<int> path)
     {
-        for (int i = 0; i < imparCount; i++) // Percorre os vértices ímpares
+        var auxGraph = new int[imparCount, imparCount]; // Cria uma matriz de inteiros para armazenar o grafo auxiliar
+        var paths = new List<int>[imparCount, imparCount]; // Cria uma matriz de listas de inteiros para armazenar os caminhos mínimos
+
+        for (int i = 0; i < imparCount; i++)
         {
-            for (int j = i + 1; j < imparCount; j++) // Percorre os vértices ímpares a partir do vértice i + 1
+            for (int j = 0; j < imparCount; j++)
             {
-                int u = imparVertices[i]; // Define o vértice u como o vértice ímpar i
-                int v = imparVertices[j]; // Define o vértice v como o vértice ímpar j
-                var (cost, _) = Dijkstra(graph, size, u, v, path); // Calcula o custo mínimo e o caminho mínimo entre os vértices u e v
-                matching[u][v].Add(cost); // Adiciona o custo mínimo entre os vértices u e v
-                matching[v][u].Add(cost); // Adiciona o custo mínimo entre os vértices v e u
+                if (i != j) // Se os vértices forem diferentes
+                {
+                    var (cost, p) = Dijkstra(graph, size, imparVertices[i], imparVertices[j], new List<int>()); // Calcula o caminho mínimo entre os vértices i e j
+                    auxGraph[i, j] = cost;  // Define o custo do caminho mínimo
+                    paths[i, j] = p;    // Define o caminho mínimo
+                }
+                else // Se os vértices forem iguais
+                {
+                    auxGraph[i, j] = int.MaxValue; // Define o custo como infinito
+                    paths[i, j] = new List<int>(); // Cria uma lista vazia
+                }
             }
         }
-        return path; // Retorna o caminho mínimo
+
+        while (imparCount > 0) // Repete enquanto houver vértices ímpares
+        {
+            int minCost = int.MaxValue; // Define o custo mínimo como infinito
+            int x = -1, y = -1; // Inicializa os vértices x e y com -1 para indicar que ainda não foram definidos
+
+            for (int i = 0; i < imparCount; i++)
+            {
+                for (int j = 0; j < imparCount; j++)
+                {
+                    if (auxGraph[i, j] < minCost) // Se o custo do caminho mínimo entre os vértices i e j for menor do que o custo mínimo atual
+                    {
+                        minCost = auxGraph[i, j]; // Atualiza o custo mínimo
+                        x = i; // Atualiza o vértice x
+                        y = j; // Atualiza o vértice y
+                    }
+                }
+            }
+
+            if (x == -1 || y == -1) break; // Se os vértices x e y não foram definidos, então interrompe o laço (while)
+
+            DuplicateEdges(graph, size, paths[x, y]); // Duplica as arestas do caminho mínimo entre os vértices x e y
+
+            for (int i = 0; i < imparCount; i++)
+            {
+                // Atualiza o custo do caminho mínimo das linhas e colunas que representam os vértices x e y para infinito
+                auxGraph[x, i] = int.MaxValue; // Define o custo do caminho mínimo entre os vértices x e i como infinito
+                auxGraph[i, x] = int.MaxValue;
+                auxGraph[y, i] = int.MaxValue; // Define o custo do caminho mínimo entre os vértices y e i como infinito
+                auxGraph[i, y] = int.MaxValue;
+            }
+
+            // Remove os vértices x e y do array de vértices ímpares
+            imparVertices = imparVertices.Where((_, index) => index != x && index != y).ToArray();
+            imparCount -= 2; // Decrementa o contador de vértices ímpares em 2
+        }
     }
 
+    // Encontra os vértices ímpares que tornam o gráfico não-euleriano
     private void FindImparVertices(List<int>[][] graph, int size, out int[] imparVertices, out int imparCount)
     {
         int[] graus = new int[size]; // Cria um array de inteiros para armazenar o grau dos vértices
@@ -346,43 +389,29 @@ public class ChinesePostmanProblem : Form
         }
     }
 
-
+    // Duplica as arestas
     private void DuplicateEdges(List<int>[][] graph, int size, List<int> path)
     {
-        // Duplica as arestas do caminho mínimo
         for (int k = 0; k < path.Count - 1; k++) // Percorre o caminho mínimo
         {
             InsertEdge(ref graph, ref size, path[k], path[k + 1], graph[path[k]][path[k + 1]].Min(), true); // Adiciona a aresta duplicada entre os vértices k e k + 1
         }
     }
 
-    private void Pcc(List<int>[][] graph, int size, int startVertex)
+    // Resolve o Problema do Carteiro Chinês
+    private void ResolveCPP(List<int>[][] graph, int size, int startVertex)
     {
         if (EulerianGraph(graph, size)) // Se o grafo for euleriano
         {
             // Solução trivial
-            Hierholzer(graph, size, startVertex); // Executa o algoritmo de Hierholzer
+            Hierholzer(graph, size, startVertex);
         }
         else
         {
             // Solução não trivial
-            FindImparVertices(graph, size, out int[] imparVertices, out int imparCount); // Encontra os vértices ímpares
-
-            var matching = new List<int>[size][]; // Cria um array de listas de inteiros para armazenar o matching
-            for (int i = 0; i < size; i++) // Percorre os vértices(linhas da matriz)
-            {
-                matching[i] = new List<int>[size]; // Cria um array de listas de inteiros para armazenar o matching
-                for (int j = 0; j < size; j++) // Percorre os vértices(colunas da matriz)
-                {
-                    matching[i][j] = new List<int>(); // Cria uma lista de inteiros para armazenar o matching
-                }
-            }
-
-            List<int> path = new List<int>(); // Cria uma lista de inteiros para armazenar o caminho mínimo
-
-            path = MinCostPerfectMatching(graph, size, imparVertices, imparCount, matching, path); // Calcula o matching
-            DuplicateEdges(graph, size, path); // Duplica as arestas do caminho mínimo
-            Hierholzer(graph, size, startVertex); // Executa o algoritmo de Hierholzer para encontrar o caminho de Euler e resolver o Problema do Carteiro Chinês
+            FindImparVertices(graph, size, out int[] imparVertices, out int imparCount);
+            MinCostPerfectMatching(graph, size, imparVertices, imparCount, new List<int>());
+            Hierholzer(graph, size, startVertex);
         }
     }
 
@@ -420,7 +449,7 @@ public class ChinesePostmanProblem : Form
                 MessageBox.Show("O vértice não existe ou a entrada é inválida", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error); // Exibe uma mensagem de erro
                 return;
             }
-            Pcc(graph, size, startVertex); // Executa o Problema do Carteiro Chinês
+            ResolveCPP(graph, size, startVertex); // Executa o Problema do Carteiro Chinês
         }
         else
         {
