@@ -43,7 +43,11 @@ public class ChinesePostmanProblem : Form
         executeButton.Click += (sender, e) => PromptForInput(false, true);
         this.Controls.Add(executeButton);
 
-        drawingArea = new Rectangle(0, 100, this.ClientSize.Width, this.ClientSize.Height - 100); // Define a área de desenho
+        drawingArea = new Rectangle(0, 40, this.ClientSize.Width, this.ClientSize.Height - 40); // Define a área de desenho
+
+        actionButton = new Button { Location = new Point(190, 50), Size = new Size(100, 20) }; // Inicializa o botão de ação
+        this.Controls.Add(actionButton); // Adiciona o botão de ação
+        actionButton.Visible = false; // Esconde o botão de ação inicialmente
 
         // Evento de rolagem do mouse
         this.MouseWheel += (sender, e) =>
@@ -104,7 +108,7 @@ public class ChinesePostmanProblem : Form
         // Evento de redimensionamento da janela
         this.Resize += (sender, e) =>
         {
-            drawingArea = new Rectangle(0, 100, this.ClientSize.Width, this.ClientSize.Height - 100); // Atualiza a área de desenho ao redimensionar
+            drawingArea = new Rectangle(0, 40, this.ClientSize.Width, this.ClientSize.Height - 40); // Atualiza a área de desenho ao redimensionar
             this.Invalidate(drawingArea); // Redesenha a área de desenho
         };
     }
@@ -376,7 +380,7 @@ public class ChinesePostmanProblem : Form
         {
             positions = new Point[size]; // Inicializa as posições dos vértices
         }
-        int graphRadius = (int)((Math.Min(centerX, centerY) - 50) * zoom); // Calcula o raio do grafo
+        int graphRadius = (int)((Math.Min(centerX, centerY) - 30) * zoom); // Calcula o raio do grafo
 
         for (int i = 0; i < size; i++) // Percorre os vértices
         {
@@ -403,17 +407,14 @@ public class ChinesePostmanProblem : Form
                             using (var pen = new Pen(Color.Green, 2)) // Cria uma caneta verde
                             {
                                 var midPoint = new Point((positions[i].X + positions[j].X) / 2, (positions[i].Y + positions[j].Y) / 2); // Calcula o ponto médio
-                                var controlPoint = new Point(midPoint.X + 20, midPoint.Y - 20); // Calcula o ponto de controle
+                                var controlPoint = new Point(midPoint.X + 25, midPoint.Y - 25); // Calcula o ponto de controle
                                 var graphpath = new GraphicsPath(); // Cria um caminho gráfico usando a dependência System.Drawing.Drawing2D
                                 graphpath.AddBezier(positions[i], controlPoint, controlPoint, positions[j]); // Adiciona uma curva de Bézier ao caminho
                                 g.DrawPath(pen, graphpath); // Desenha o caminho com a caneta
                                 g.DrawString(weight.ToString(), this.Font, Brushes.Green, midPoint); // Desenha o peso da aresta
                             }
                         }
-                        else
-                        {
-                            g.DrawLine(Pens.Black, positions[i], positions[j]); // Desenha a aresta entre os vértices i e j com a cor preta
-                        }
+                        g.DrawLine(Pens.Black, positions[i], positions[j]); // Desenha a aresta entre os vértices i e j com a cor preta
                         var midPointText = new Point((positions[i].X + positions[j].X) / 2, (positions[i].Y + positions[j].Y) / 2); // Calcula o ponto médio do texto
                         g.DrawString(weight.ToString(), this.Font, Brushes.Black, midPointText); // Desenha o peso da aresta
                     }
@@ -435,16 +436,67 @@ public class ChinesePostmanProblem : Form
     private void HidePrompt()
     {
         // Esconde as caixas de texto e o botão de ação
-        if (inputU != null) inputU.Visible = false; // Se a caixa de texto do vértice u existir, então esconde
-        if (inputV != null) inputV.Visible = false; // Se a caixa de texto do vértice v existir, então esconde
-        if (inputWeight != null) inputWeight.Visible = false; // Se a caixa de texto do peso da aresta existir, então esconde
-        if (inputStart != null) inputStart.Visible = false; // Se a caixa de texto do vértice de início existir, então esconde
-        if (actionButton != null) actionButton.Visible = false; // Se o botão de ação existir, então esconde
+        if (inputU != null) 
+        {
+            inputU.Visible = false; // Se a caixa de texto do vértice u existir, então esconde
+            inputU.Text = ""; // Limpa o texto da caixa de texto do vértice u
+        }
+        if (inputV != null) 
+        {
+            inputV.Visible = false; // Se a caixa de texto do vértice v existir, então esconde
+            inputV.Text = ""; // Limpa o texto da caixa de texto do vértice v
+        }
+        if (inputWeight != null) 
+        {
+            inputWeight.Visible = false; // Se a caixa de texto do peso da aresta existir, então esconde
+            inputWeight.Text = ""; // Limpa o texto da caixa de texto do peso da aresta
+        }
+        if (inputStart != null) 
+        {
+            inputStart.Visible = false; // Se a caixa de texto do vértice de início existir, então esconde
+            inputStart.Text = ""; // Limpa o texto da caixa de texto do vértice de início
+        }
+        if (actionButton.Visible == true) actionButton.Visible = false; // Esconde o botão de ação
+    }
+    private void ActionButton_Click(object sender, EventArgs e)
+    {
+        if (actionButton.Text == "EXECUTE")
+        {
+            if (!int.TryParse(inputStart.Text, out int startVertex) || startVertex >= size) // Verifica se a entrada é válida
+            {
+                MessageBox.Show("O vértice não existe ou a entrada é inválida", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error); // Exibe uma mensagem de erro
+                return;
+            }
+            Pcc(graph, size, startVertex); // Executa o Problema do Carteiro Chinês
+        }
+        else
+        {
+            if (!int.TryParse(inputU.Text, out int u) || !int.TryParse(inputV.Text, out int v)) // Verifica se as entradas são válidas
+            {
+                MessageBox.Show("Os vértices são inválidos", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error); // Exibe uma mensagem de erro
+                return;
+            }
+            if (actionButton.Text == "ADD") // Se for para adicionar aresta
+            {
+                if (!int.TryParse(inputWeight.Text, out int weight)) // Verifica se a entrada do peso é válida
+                {
+                    MessageBox.Show("O peso é inválido", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error); // Exibe uma mensagem de erro
+                    return;
+                }
+                InsertEdge(ref graph, ref size, u, v, weight); // Adiciona a aresta entre os vértices u e v
+            }
+            else
+            {
+                DeleteEdge(ref graph, ref size, u, v); // Remove a aresta entre os vértices u e v
+            }
+        }
+        HidePrompt(); // Esconde as caixas de texto
+        this.Invalidate(drawingArea); // Redesenha a área de desenho do grafo
     }
 
     private void PromptForInput(bool isAdd, bool isExecute)
     {
-        HidePrompt(); // Esconde as caixas de texto e o botão de ação
+        HidePrompt(); // Esconde as caixas de texto
 
         // Exibe as caixas de texto e o botão de ação
         if (isExecute) // Se for para executar o PCC
@@ -452,71 +504,44 @@ public class ChinesePostmanProblem : Form
             if (inputStart == null) // Se a caixa de texto do vértice de início não existir
             {
                 inputStart = new TextBox { Location = new Point(10, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice de início
-                actionButton = new Button { Text = "Execute", Location = new Point(70, 50), Size = new Size(70, 20) }; // Cria o botão de ação
-                actionButton.Click += (sender, e) =>
-                {
-                    int startVertex = int.Parse(inputStart.Text); // Obtém o vértice de início
-                    if (inputStart.Text == "" || startVertex >= size) // Se o vértice de início não for informado ou não existir
-                    {
-                        MessageBox.Show("O vértice não existe", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error); // Exibe uma mensagem de erro
-                        return;
-                    }
-                    Pcc(graph, size, startVertex); // Executa o Problema do Carteiro Chinês
-                    HidePrompt(); // Esconde as caixas de texto e o botão de ação
-                    this.Invalidate(drawingArea); // Redesenha a área de desenho do grafo
-                };
                 this.Controls.Add(inputStart); // Adiciona a caixa de texto do vértice de início
-                this.Controls.Add(actionButton); // Adiciona o botão de ação
             }
-            else
-            {
-                inputStart.Visible = true; // Exibe a caixa de texto do vértice de início
-                actionButton.Visible = true; // Exibe o botão de ação
-                actionButton.Text = "Execute"; // Define o texto do botão de ação como "Execute"
-            }
+            inputStart.Visible = true; // Exibe a caixa de texto do vértice de início
+
+            actionButton.Text = "EXECUTE"; // Define o texto do botão de ação
+            actionButton.Click -= ActionButton_Click; // Remove o evento de clique existente
+            actionButton.Click += ActionButton_Click; // Adiciona o novo evento de clique
+            actionButton.Visible = true; // Exibe o botão de ação
         }
         else
         {
             if (inputU == null) // Se a caixa de texto do vértice u não existir
             {
                 inputU = new TextBox { Location = new Point(10, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice u
-                inputV = new TextBox { Location = new Point(70, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice v
-                if (isAdd) // Se for para adicionar aresta
-                {
-                    inputWeight = new TextBox { Location = new Point(130, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do peso da aresta
-                }
-                actionButton = new Button { Text = isAdd ? "Add" : "Delete", Location = new Point(190, 50), Size = new Size(50, 20) }; // Cria o botão de ação
-                actionButton.Click += (sender, e) =>
-                {
-                    int u = int.Parse(inputU.Text); // Obtém o vértice u
-                    int v = int.Parse(inputV.Text); // Obtém o vértice v
-                    if (isAdd) // Se for para adicionar aresta
-                    {
-                        int weight = int.Parse(inputWeight.Text); // Obtém o peso da aresta
-                        InsertEdge(ref graph, ref size, u, v, weight); // Adiciona a aresta entre os vértices u e v
-                    }
-                    else
-                    {
-                        DeleteEdge(ref graph, ref size, u, v); // Remove a aresta entre os vértices u e v
-                    }
-                    HidePrompt(); // Esconde as caixas de texto e o botão de ação
-                    this.Invalidate(drawingArea); // Redesenha a área de desenho do grafo
-                };
                 this.Controls.Add(inputU); // Adiciona a caixa de texto do vértice u
-                this.Controls.Add(inputV); // Adiciona a caixa de texto do vértice v
-                if (isAdd) this.Controls.Add(inputWeight); // Se for para adicionar aresta, então adiciona a caixa de texto do peso da aresta
-                this.Controls.Add(actionButton); // Adiciona o botão de ação
             }
-            else
+            if (inputV == null) // Se a caixa de texto do vértice v não existir
             {
-                inputU.Visible = true; // Exibe a caixa de texto do vértice u
-                inputV.Visible = true; // Exibe a caixa de texto do vértice v
-                if (isAdd) inputWeight.Visible = true; // Se for para adicionar aresta, então exibe a caixa de texto do peso da aresta
-                actionButton.Text = isAdd ? "Add" : "Delete"; // Define o texto do botão de ação como "Add" ou "Delete"
-                actionButton.Visible = true; // Exibe o botão de ação
+                inputV = new TextBox { Location = new Point(70, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice v
+                this.Controls.Add(inputV); // Adiciona a caixa de texto do vértice v
             }
+            if (isAdd && inputWeight == null) // Se for para adicionar aresta e a caixa de texto do peso não existir
+            {
+                inputWeight = new TextBox { Location = new Point(130, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do peso da aresta
+                this.Controls.Add(inputWeight); // Adiciona a caixa de texto do peso da aresta
+            }
+
+            inputU.Visible = true; // Exibe a caixa de texto do vértice u
+            inputV.Visible = true; // Exibe a caixa de texto do vértice v
+            if (isAdd) inputWeight.Visible = true; // Se for para adicionar aresta, então exibe a caixa de texto do peso da aresta
+
+            actionButton.Text = isAdd ? "ADD" : "DELETE"; // Define o texto do botão de ação
+            actionButton.Click -= ActionButton_Click; // Remove o evento de clique existente
+            actionButton.Click += ActionButton_Click; // Adiciona o novo evento de clique
+            actionButton.Visible = true; // Exibe o botão de ação
         }
     }
+
 
     protected override void OnPaint(PaintEventArgs e)
     {
