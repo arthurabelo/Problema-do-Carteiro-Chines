@@ -306,7 +306,7 @@ public class ChinesePostmanProblem : Form
     }
 
     // Calcula o matching mínimo perfeito
-    private void MinCostPerfectMatching(List<int>[][] graph, int size, int[] imparVertices, int imparCount, List<int> path)
+    private void MinCostPerfectMatching(List<int>[][] graph, int size, int[] imparVertices, int imparCount)
     {
         var auxGraph = new int[imparCount, imparCount]; // Cria uma matriz de inteiros para armazenar o grafo auxiliar
         var paths = new List<int>[imparCount, imparCount]; // Cria uma matriz de listas de inteiros para armazenar os caminhos mínimos
@@ -317,7 +317,7 @@ public class ChinesePostmanProblem : Form
             {
                 if (i != j) // Se os vértices forem diferentes
                 {
-                    var (cost, p) = Dijkstra(graph, size, imparVertices[i], imparVertices[j], new List<int>()); // Calcula o caminho mínimo entre os vértices i e j
+                    var (cost, p) = Dijkstra(graph, size, imparVertices[i], imparVertices[j], new List<int>()); // Calcula o caminho mínimo entre os vértices ímpares
                     auxGraph[i, j] = cost;  // Define o custo do caminho mínimo
                     paths[i, j] = p;    // Define o caminho mínimo
                 }
@@ -329,40 +329,37 @@ public class ChinesePostmanProblem : Form
             }
         }
 
-        while (imparCount > 0) // Repete enquanto houver vértices ímpares
+        var minCostPairs = new List<(int, int)>(); // Lista para armazenar os pares de vértices com menor custo
+        var minTotalCost = int.MaxValue; // Inicializa o custo total mínimo como infinito
+
+        // Função recursiva para encontrar todas as combinações de emparelhamento
+        void FindPairs(List<int> remaining, List<(int, int)> currentPairs, int currentCost)
         {
-            int minCost = int.MaxValue; // Define o custo mínimo como infinito
-            int x = -1, y = -1; // Inicializa os vértices x e y com -1 para indicar que ainda não foram definidos
-
-            for (int i = 0; i < imparCount; i++)
+            if (remaining.Count == 0) // Se não houver mais vértices restantes
             {
-                for (int j = 0; j < imparCount; j++)
+                if (currentCost < minTotalCost) // Se o custo atual for menor que o custo total mínimo
                 {
-                    if (auxGraph[i, j] < minCost) // Se o custo do caminho mínimo entre os vértices i e j for menor do que o custo mínimo atual
-                    {
-                        minCost = auxGraph[i, j]; // Atualiza o custo mínimo
-                        x = i; // Atualiza o vértice x
-                        y = j; // Atualiza o vértice y
-                    }
+                    minTotalCost = currentCost; // Atualiza o custo total mínimo
+                    minCostPairs = new List<(int, int)>(currentPairs); // Atualiza os pares de vértices com menor custo
                 }
+                return;
             }
 
-            if (x == -1 || y == -1) break; // Se os vértices x e y não foram definidos, então interrompe o laço (while)
-
-            DuplicateEdges(graph, size, paths[x, y]); // Duplica as arestas do caminho mínimo entre os vértices x e y
-
-            for (int i = 0; i < imparCount; i++)
+            for (int i = 1; i < remaining.Count; i++)
             {
-                // Atualiza o custo do caminho mínimo das linhas e colunas que representam os vértices x e y para infinito
-                auxGraph[x, i] = int.MaxValue; // Define o custo do caminho mínimo entre os vértices x e i como infinito
-                auxGraph[i, x] = int.MaxValue;
-                auxGraph[y, i] = int.MaxValue; // Define o custo do caminho mínimo entre os vértices y e i como infinito
-                auxGraph[i, y] = int.MaxValue;
-            }
+                var newPairs = new List<(int, int)>(currentPairs) { (remaining[0], remaining[i]) }; // Adiciona um novo par de vértices
+                var newRemaining = remaining.Where((_, index) => index != 0 && index != i).ToList(); // Remove os vértices emparelhados da lista de vértices restantes
+                var newCost = currentCost + auxGraph[remaining[0], remaining[i]]; // Calcula o novo custo
 
-            // Remove os vértices x e y do array de vértices ímpares
-            imparVertices = imparVertices.Where((_, index) => index != x && index != y).ToArray();
-            imparCount -= 2; // Decrementa o contador de vértices ímpares em 2
+                FindPairs(newRemaining, newPairs, newCost); // Chama a função recursiva com os novos pares e vértices restantes
+            }
+        }
+
+        FindPairs(Enumerable.Range(0, imparCount).ToList(), new List<(int, int)>(), 0); // Inicia a busca recursiva
+
+        foreach (var (x, y) in minCostPairs) // Para cada par de vértices com menor custo
+        {
+            DuplicateEdges(graph, size, paths[x, y]); // Duplica as arestas do caminho mínimo entre os vértices x e y
         }
     }
 
@@ -410,7 +407,7 @@ public class ChinesePostmanProblem : Form
         {
             // Solução não trivial
             FindImparVertices(graph, size, out int[] imparVertices, out int imparCount);
-            MinCostPerfectMatching(graph, size, imparVertices, imparCount, new List<int>());
+            MinCostPerfectMatching(graph, size, imparVertices, imparCount);
             Hierholzer(graph, size, startVertex);
         }
     }
