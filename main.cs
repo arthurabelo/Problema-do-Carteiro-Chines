@@ -23,6 +23,7 @@ public class ChinesePostmanProblem : Form
     private Point[] positions; // Posições dos vértices
     private int? draggingVertex = null; // int? é um tipo de dado que aceita valores nulos
     private Rectangle drawingArea; // Área de desenho
+    private TextBox pathOutput; // Caixa de texto para exibir o caminho
 
     public ChinesePostmanProblem()
     {
@@ -42,6 +43,9 @@ public class ChinesePostmanProblem : Form
         var executeButton = new Button { Text = "Executar PCC", Location = new Point(230, 10), Size = new Size(100, 30) };
         executeButton.Click += (sender, e) => PromptForInput(false, true);
         this.Controls.Add(executeButton);
+
+        pathOutput = new TextBox { Location = new Point(340, 10), Size = new Size(440, 30), ReadOnly = true }; // Inicializa a caixa de texto do caminho
+        this.Controls.Add(pathOutput); // Adiciona a caixa de texto do caminho
 
         drawingArea = new Rectangle(0, 40, this.ClientSize.Width, this.ClientSize.Height - 40); // Define a área de desenho
 
@@ -67,7 +71,7 @@ public class ChinesePostmanProblem : Form
                 for (int i = 0; i < size; i++) // Percorre os vértices do grafo
                 {
                     // Se a posição do mouse estiver próxima de um vértice, então arrasta o vértice
-                    if (positions[i] != Point.Empty && Math.Abs(e.X - positions[i].X) < 10 && Math.Abs(e.Y - positions[i].Y) < 10) 
+                    if (positions[i] != Point.Empty && Math.Abs(e.X - positions[i].X) < (20 * zoom) && Math.Abs(e.Y - positions[i].Y) < (20 * zoom)) 
                     {
                         draggingVertex = i; // Salva o vértice que está sendo arrastado
                         break; // Interrompe o laço
@@ -93,7 +97,17 @@ public class ChinesePostmanProblem : Form
             {
                 if (draggingVertex.HasValue) // Se houver um vértice sendo arrastado
                 {
-                    positions[draggingVertex.Value] = e.Location; // Atualiza a posição do vértice
+                    // Calcula a nova posição do vértice
+                    int newX = e.Location.X;
+                    int newY = e.Location.Y;
+
+                    // Impede que o vértice saia da tela
+                    if (newX < drawingArea.Left) newX = drawingArea.Left;
+                    if (newX > drawingArea.Right) newX = drawingArea.Right;
+                    if (newY < drawingArea.Top) newY = drawingArea.Top;
+                    if (newY > drawingArea.Bottom) newY = drawingArea.Bottom;
+
+                    positions[draggingVertex.Value] = new Point(newX, newY); // Atualiza a posição do vértice
                 }
                 else
                 {
@@ -236,6 +250,7 @@ public class ChinesePostmanProblem : Form
         }
 
         Console.WriteLine("Hierholzer Path: " + string.Join(" ", hierholzerPath)); // Exibe o caminho de Hierholzer no console
+        pathOutput.Text = string.Join(" -> ", hierholzerPath); // Exibe o caminho de Hierholzer na caixa de texto
     }
 
     private int FindMinIndex(int[] dist, bool[] visited)
@@ -371,68 +386,6 @@ public class ChinesePostmanProblem : Form
         }
     }
 
-    private void DrawGraph(Graphics g, List<int>[][] graph, int size, Rectangle rect, double zoom, int offsetX, int offsetY)
-    {
-        int radius = (int)(20 * zoom); // Aplicar zoom no raio dos vértices do grafo (int) converte o resultado  da multiplicação para inteiro
-        int centerX = rect.Width / 2 + offsetX; // Calcula o centro do eixo x
-        int centerY = rect.Height / 2 + offsetY; // Calcula o centro do eixo y
-        if (positions == null || positions.Length != size) // Se as posições dos vértices não foram definidas ou o tamanho for diferente
-        {
-            positions = new Point[size]; // Inicializa as posições dos vértices
-        }
-        int graphRadius = (int)((Math.Min(centerX, centerY) - 30) * zoom); // Calcula o raio do grafo
-
-        for (int i = 0; i < size; i++) // Percorre os vértices
-        {
-            if (positions[i] == Point.Empty) // Se a posição do vértice i não foi definida
-            {
-                // Define a posição do vértice i na circunferência
-                positions[i] = new Point(
-                    centerX + (int)(graphRadius * Math.Cos(2 * Math.PI * i / size)),
-                    centerY + (int)(graphRadius * Math.Sin(2 * Math.PI * i / size))
-                );
-            }
-        }
-
-        for (int i = 0; i < size; i++) // Percorre os vértices
-        {
-            for (int j = i + 1; j < size; j++) // Percorre os vértices a partir do vértice i + 1
-            {
-                if (graph[i][j].Count > 0) // Se houver aresta entre os vértices i e j
-                {
-                    foreach (var weight in graph[i][j]) // Percorre os pesos das arestas
-                    {
-                        if (graph[i][j].Count > 1) // Se houver arestas duplicadas
-                        {
-                            using (var pen = new Pen(Color.Green, 2)) // Cria uma caneta verde
-                            {
-                                var midPoint = new Point((positions[i].X + positions[j].X) / 2, (positions[i].Y + positions[j].Y) / 2); // Calcula o ponto médio
-                                var controlPoint = new Point(midPoint.X + 25, midPoint.Y - 25); // Calcula o ponto de controle
-                                var graphpath = new GraphicsPath(); // Cria um caminho gráfico usando a dependência System.Drawing.Drawing2D
-                                graphpath.AddBezier(positions[i], controlPoint, controlPoint, positions[j]); // Adiciona uma curva de Bézier ao caminho
-                                g.DrawPath(pen, graphpath); // Desenha o caminho com a caneta
-                                g.DrawString(weight.ToString(), this.Font, Brushes.Green, midPoint); // Desenha o peso da aresta
-                            }
-                        }
-                        g.DrawLine(Pens.Black, positions[i], positions[j]); // Desenha a aresta entre os vértices i e j com a cor preta
-                        var midPointText = new Point((positions[i].X + positions[j].X) / 2, (positions[i].Y + positions[j].Y) / 2); // Calcula o ponto médio do texto
-                        g.DrawString(weight.ToString(), this.Font, Brushes.Black, midPointText); // Desenha o peso da aresta
-                    }
-                }
-            }
-        }
-
-        for (int i = 0; i < size; i++) // Percorre os vértices
-        {
-            if (graph[i].Any(col => col.Count > 0)) // Se houver arestas incidentes no vértice
-            {
-                g.FillEllipse(Brushes.White, positions[i].X - radius, positions[i].Y - radius, radius * 2, radius * 2); // Preenche o vértice(elipse) com a cor branca
-                g.DrawEllipse(Pens.Black, positions[i].X - radius, positions[i].Y - radius, radius * 2, radius * 2); // Desenha o vértice(elipse) com a cor preta
-                g.DrawString(i.ToString(), this.Font, Brushes.Black, positions[i].X - 5, positions[i].Y - 5); // Desenha o índice do vértice
-            }
-        }
-    }
-
     private void HidePrompt()
     {
         // Esconde as caixas de texto e o botão de ação
@@ -542,6 +495,73 @@ public class ChinesePostmanProblem : Form
         }
     }
 
+    private void DrawGraph(Graphics g, List<int>[][] graph, int size, Rectangle rect, double zoom, int offsetX, int offsetY)
+    {
+        int radius = (int)(20 * zoom); // Aplicar zoom no raio dos vértices do grafo (int) converte o resultado  da multiplicação para inteiro
+        int centerX = rect.Width / 2 + offsetX; // Calcula o centro do eixo x
+        int centerY = rect.Height / 2 + offsetY; // Calcula o centro do eixo y
+        if (positions == null || positions.Length != size) // Se as posições dos vértices não foram definidas ou o tamanho for diferente
+        {
+            positions = new Point[size]; // Inicializa as posições dos vértices
+        }
+        int graphRadius = (int)((Math.Min(centerX, centerY) - 100) * zoom); // Calcula o raio do grafo
+
+        for (int i = 0; i < size; i++) // Percorre os vértices
+        {
+            if (positions[i] == Point.Empty) // Se a posição do vértice i não foi definida
+            {
+                // Define a posição do vértice i na circunferência
+                int posX = centerX + (int)(graphRadius * Math.Cos(2 * Math.PI * i / size));
+                int posY = centerY + (int)(graphRadius * Math.Sin(2 * Math.PI * i / size));
+
+                // Impede que o vértice apareça fora da tela
+                if (posX < rect.Left + radius) posX = rect.Left + radius;
+                if (posX > rect.Right - radius) posX = rect.Right - radius;
+                if (posY < rect.Top + radius) posY = rect.Top + radius;
+                if (posY > rect.Bottom - radius) posY = rect.Bottom - radius;
+
+                positions[i] = new Point(posX, posY);
+            }
+        }
+
+        for (int i = 0; i < size; i++) // Percorre os vértices
+        {
+            for (int j = i + 1; j < size; j++) // Percorre os vértices a partir do vértice i + 1
+            {
+                if (graph[i][j].Count > 0) // Se houver aresta entre os vértices i e j
+                {
+                    foreach (var weight in graph[i][j]) // Percorre os pesos das arestas
+                    {
+                        if (graph[i][j].Count > 1) // Se houver arestas duplicadas
+                        {
+                            using (var pen = new Pen(Color.Green, 2)) // Cria uma caneta verde
+                            {
+                                var midPoint = new Point((positions[i].X + positions[j].X) / 2, (positions[i].Y + positions[j].Y) / 2); // Calcula o ponto médio
+                                var controlPoint = new Point(midPoint.X + 25, midPoint.Y - 25); // Calcula o ponto de controle
+                                var graphpath = new GraphicsPath(); // Cria um caminho gráfico usando a dependência System.Drawing.Drawing2D
+                                graphpath.AddBezier(positions[i], controlPoint, controlPoint, positions[j]); // Adiciona uma curva de Bézier ao caminho
+                                g.DrawPath(pen, graphpath); // Desenha o caminho com a caneta
+                                g.DrawString(weight.ToString(), this.Font, Brushes.Green, midPoint); // Desenha o peso da aresta
+                            }
+                        }
+                        g.DrawLine(Pens.Black, positions[i], positions[j]); // Desenha a aresta entre os vértices i e j com a cor preta
+                        var midPointText = new Point((positions[i].X + positions[j].X) / 2, (positions[i].Y + positions[j].Y) / 2); // Calcula o ponto médio do texto
+                        g.DrawString(weight.ToString(), this.Font, Brushes.Black, midPointText); // Desenha o peso da aresta
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < size; i++) // Percorre os vértices
+        {
+            if (graph[i].Any(col => col.Count > 0)) // Se houver arestas incidentes no vértice
+            {
+                g.FillEllipse(Brushes.White, positions[i].X - radius, positions[i].Y - radius, radius * 2, radius * 2); // Preenche o vértice(elipse) com a cor branca
+                g.DrawEllipse(Pens.Black, positions[i].X - radius, positions[i].Y - radius, radius * 2, radius * 2); // Desenha o vértice(elipse) com a cor preta
+                g.DrawString(i.ToString(), this.Font, Brushes.Black, positions[i].X - 5, positions[i].Y - 5); // Desenha o índice do vértice
+            }
+        }
+    }
 
     protected override void OnPaint(PaintEventArgs e)
     {
