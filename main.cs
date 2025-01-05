@@ -24,30 +24,42 @@ public class ChinesePostmanProblem : Form
     public ChinesePostmanProblem()
     {
         this.Text = "Problema do Carteiro Chinês";
-        this.Size = new Size(800, 400);
+        this.Size = new Size(1000, 600); // Aumenta o tamanho da janela
         this.graph = CreateGraph(size); // Inicializa o grafo
         this.positions = new Point[size]; // Inicializa as posições dos vértices para desenho
 
-        var addButton = new Button { Text = "Adicionar Aresta", Location = new Point(10, 10), Size = new Size(100, 30) };
+        drawingArea = new Rectangle(180, 5, this.ClientSize.Width - 190, this.ClientSize.Height - 10); // Define a área de desenho
+
+        var addButton = new Button { Text = "Adicionar Aresta", Location = new Point(10, 10), Size = new Size(150, 30) };
         addButton.Click += (sender, e) => PromptForInput(true, false);
         this.Controls.Add(addButton);
 
-        var deleteButton = new Button { Text = "Deletar Aresta", Location = new Point(120, 10), Size = new Size(100, 30) };
+        var deleteButton = new Button { Text = "Deletar Aresta", Location = new Point(10, 50), Size = new Size(150, 30) };
         deleteButton.Click += (sender, e) => PromptForInput(false, false);
         this.Controls.Add(deleteButton);
 
-        var executeButton = new Button { Text = "Executar PCC", Location = new Point(230, 10), Size = new Size(100, 30) };
+        var clearButton = new Button { Text = "Limpar Grafo", Location = new Point(10, 90), Size = new Size(150, 30) };
+        clearButton.Click += ClearButton_Click;
+        this.Controls.Add(clearButton);
+
+        actionButton = new Button { Location = new Point(10, 210), Size = new Size(150, 30) }; // Inicializa o botão de ação
+        this.Controls.Add(actionButton); // Adiciona o botão de ação
+        actionButton.Visible = false; // Esconde o botão de ação inicialmente
+
+        var executeButton = new Button { Text = "Executar PCC", Location = new Point(10, 330), Size = new Size(150, 30) };
         executeButton.Click += (sender, e) => PromptForInput(false, true);
         this.Controls.Add(executeButton);
 
-        pathOutput = new TextBox { Location = new Point(340, 10), Size = new Size(440, 30), ReadOnly = true }; // Inicializa a caixa de texto do caminho
+        pathOutput = new TextBox { Location = new Point(10, 370), Size = new Size(150, 30), ReadOnly = true }; // Inicializa a caixa de texto do caminho
         this.Controls.Add(pathOutput); // Adiciona a caixa de texto do caminho
 
-        drawingArea = new Rectangle(0, 40, this.ClientSize.Width, this.ClientSize.Height - 40); // Define a área de desenho
+        var uploadButton = new Button { Text = "Upload Matriz", Location = new Point(10, 450), Size = new Size(150, 30) };
+        uploadButton.Click += UploadButton_Click;
+        this.Controls.Add(uploadButton);
 
-        actionButton = new Button { Location = new Point(190, 50), Size = new Size(100, 20) }; // Inicializa o botão de ação
-        this.Controls.Add(actionButton); // Adiciona o botão de ação
-        actionButton.Visible = false; // Esconde o botão de ação inicialmente
+        var exportButton = new Button { Text = "Exportar Grafo", Location = new Point(10, 490), Size = new Size(150, 30) };
+        exportButton.Click += ExportButton_Click;
+        this.Controls.Add(exportButton);
 
         // Evento de rolagem do mouse
         this.MouseWheel += (sender, e) =>
@@ -67,7 +79,7 @@ public class ChinesePostmanProblem : Form
                 for (int i = 0; i < size; i++) // Percorre os vértices do grafo
                 {
                     // Se a posição do mouse estiver próxima de um vértice, então arrasta o vértice
-                    if (positions[i] != Point.Empty && Math.Abs(e.X - positions[i].X) < (20 * zoom) && Math.Abs(e.Y - positions[i].Y) < (20 * zoom)) 
+                    if (positions[i] != Point.Empty && Math.Abs(e.X - positions[i].X) < (20 * zoom) && Math.Abs(e.Y - positions[i].Y) < (20 * zoom))
                     {
                         draggingVertex = i; // Salva o vértice que está sendo arrastado
                         break; // Interrompe o laço
@@ -118,7 +130,7 @@ public class ChinesePostmanProblem : Form
         // Evento de redimensionamento da janela
         this.Resize += (sender, e) =>
         {
-            drawingArea = new Rectangle(0, 40, this.ClientSize.Width, this.ClientSize.Height - 40); // Atualiza a área de desenho ao redimensionar
+            drawingArea = new Rectangle(180, 5, this.ClientSize.Width - 185, this.ClientSize.Height - 10); // Atualiza a área de desenho ao redimensionar
             this.Invalidate(drawingArea); // Redesenha a área de desenho
         };
     }
@@ -234,8 +246,14 @@ public class ChinesePostmanProblem : Form
                 stack.Push(destino); // Empilha o vértice adjacente
                 Console.WriteLine($"{vertice} > {destino}"); // Exibe a aresta no console
 
-                tempMatriz[vertice][destino].RemoveAt(0); // Remove a aresta entre os vértices vertice e destino da matriz temporária
-                tempMatriz[destino][vertice].RemoveAt(0); // Remove a aresta entre os vértices destino e vertice da matriz temporária
+                if (tempMatriz[vertice][destino].Count > 0) // Verifica se a lista não está vazia antes de remover
+                {
+                    tempMatriz[vertice][destino].RemoveAt(0); // Remove a aresta entre os vértices vertice e destino da matriz temporária
+                }
+                if (tempMatriz[destino][vertice].Count > 0) // Verifica se a lista não está vazia antes de remover
+                {
+                    tempMatriz[destino][vertice].RemoveAt(0); // Remove a aresta entre os vértices destino e vertice da matriz temporária
+                }
             }
             else
             {
@@ -415,22 +433,22 @@ public class ChinesePostmanProblem : Form
     private void HidePrompt()
     {
         // Esconde as caixas de texto e o botão de ação
-        if (inputU != null) 
+        if (inputU != null)
         {
             inputU.Visible = false; // Se a caixa de texto do vértice u existir, então esconde
             inputU.Text = ""; // Limpa o texto da caixa de texto do vértice u
         }
-        if (inputV != null) 
+        if (inputV != null)
         {
             inputV.Visible = false; // Se a caixa de texto do vértice v existir, então esconde
             inputV.Text = ""; // Limpa o texto da caixa de texto do vértice v
         }
-        if (inputWeight != null) 
+        if (inputWeight != null)
         {
             inputWeight.Visible = false; // Se a caixa de texto do peso da aresta existir, então esconde
             inputWeight.Text = ""; // Limpa o texto da caixa de texto do peso da aresta
         }
-        if (inputStart != null) 
+        if (inputStart != null)
         {
             inputStart.Visible = false; // Se a caixa de texto do vértice de início existir, então esconde
             inputStart.Text = ""; // Limpa o texto da caixa de texto do vértice de início
@@ -482,7 +500,7 @@ public class ChinesePostmanProblem : Form
         {
             if (inputStart == null) // Se a caixa de texto do vértice de início não existir
             {
-                inputStart = new TextBox { Location = new Point(10, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice de início
+                inputStart = new TextBox { Location = new Point(10, 170), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice de início
                 this.Controls.Add(inputStart); // Adiciona a caixa de texto do vértice de início
             }
             inputStart.Visible = true; // Exibe a caixa de texto do vértice de início
@@ -496,17 +514,17 @@ public class ChinesePostmanProblem : Form
         {
             if (inputU == null) // Se a caixa de texto do vértice u não existir
             {
-                inputU = new TextBox { Location = new Point(10, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice u
+                inputU = new TextBox { Location = new Point(10, 170), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice u
                 this.Controls.Add(inputU); // Adiciona a caixa de texto do vértice u
             }
             if (inputV == null) // Se a caixa de texto do vértice v não existir
             {
-                inputV = new TextBox { Location = new Point(70, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice v
+                inputV = new TextBox { Location = new Point(70, 170), Size = new Size(50, 20) }; // Cria a caixa de texto do vértice v
                 this.Controls.Add(inputV); // Adiciona a caixa de texto do vértice v
             }
             if (isAdd && inputWeight == null) // Se for para adicionar aresta e a caixa de texto do peso não existir
             {
-                inputWeight = new TextBox { Location = new Point(130, 50), Size = new Size(50, 20) }; // Cria a caixa de texto do peso da aresta
+                inputWeight = new TextBox { Location = new Point(130, 170), Size = new Size(50, 20) }; // Cria a caixa de texto do peso da aresta
                 this.Controls.Add(inputWeight); // Adiciona a caixa de texto do peso da aresta
             }
 
@@ -524,21 +542,21 @@ public class ChinesePostmanProblem : Form
     private void DrawGraph(Graphics g, List<int>[][] graph, int size, Rectangle rect, double zoom, int offsetX, int offsetY)
     {
         int radius = (int)(20 * zoom); // Aplicar zoom no raio dos vértices do grafo (int) converte o resultado  da multiplicação para inteiro
-        int centerX = rect.Width / 2 + offsetX; // Calcula o centro do eixo x
-        int centerY = rect.Height / 2 + offsetY; // Calcula o centro do eixo y
+        int centerX = rect.Left + rect.Width / 2 + offsetX; // Calcula o centro do eixo x (Left porque é a posição do inicio do retângulo)
+        int centerY = rect.Top + rect.Height / 2 + offsetY; // Calcula o centro do eixo y (Top porque é a posição do inicio do retângulo)
         if (positions == null || positions.Length != size) // Se as posições dos vértices não foram definidas ou o tamanho for diferente
         {
             positions = new Point[size]; // Inicializa as posições dos vértices
         }
-        int graphRadius = (int)((Math.Min(centerX, centerY) - 100) * zoom); // Calcula o raio do grafo
+        int graphRadius = (int)(Math.Min(centerX, centerY) * zoom); // Calcula o raio do grafo
 
         for (int i = 0; i < size; i++) // Percorre os vértices
         {
             if (positions[i] == Point.Empty) // Se a posição do vértice i não foi definida
             {
                 // Define a posição do vértice i na circunferência
-                int posX = centerX + (int)(graphRadius * Math.Cos(2 * Math.PI * i / size));
-                int posY = centerY + (int)(graphRadius * Math.Sin(2 * Math.PI * i / size));
+                int posX = centerX - (int)(graphRadius * Math.Cos(2 * Math.PI * i / size)); // O menos (-) deixa os vértices no sentido horário
+                int posY = centerY - (int)(graphRadius * Math.Sin(2 * Math.PI * i / size)); // 2 pi indica que os vértices serão gerados ao longo de uma circunferência
 
                 // Impede que o vértice apareça fora da tela
                 if (posX < rect.Left + radius) posX = rect.Left + radius;
@@ -552,7 +570,7 @@ public class ChinesePostmanProblem : Form
 
         for (int i = 0; i < size; i++) // Percorre os vértices
         {
-            for (int j = i + 1; j < size; j++) // Percorre os vértices a partir do vértice i + 1
+            for (int j = i + 1; j < size; j++) // Percorre os vértices a partir do vértice i + 1 (triângulo superior da matriz)
             {
                 if (graph[i][j].Count > 0) // Se houver aresta entre os vértices i e j
                 {
@@ -594,6 +612,84 @@ public class ChinesePostmanProblem : Form
         // Método chamado toda vez que a janela é redesenhada
         base.OnPaint(e); // Chama o método OnPaint da classe base(Form)
         DrawGraph(e.Graphics, graph, size, drawingArea, zoom, offsetX, offsetY); // Redesenha apenas a área de desenho
+    }
+
+    private void ClearButton_Click(object sender, EventArgs e)
+    {
+        graph = CreateGraph(1);
+        size = 1;
+        positions = new Point[size];
+        this.Invalidate(drawingArea);
+    }
+
+    private void UploadButton_Click(object sender, EventArgs e)
+    {
+        OpenFileDialog openFileDialog = new OpenFileDialog();
+        openFileDialog.Filter = "Text Files (*.txt)|*.txt|CSV Files (*.csv)|*.csv";
+        if (openFileDialog.ShowDialog() == DialogResult.OK)
+        {
+            string[] lines = System.IO.File.ReadAllLines(openFileDialog.FileName);
+            int newSize = lines.Length;
+            var newGraph = CreateGraph(newSize);
+            bool isCsv = openFileDialog.FileName.EndsWith(".csv");
+
+            for (int i = 0; i < newSize; i++)
+            {
+                var weights = isCsv ? lines[i].Split(',') : lines[i].Split(' ');
+                for (int j = i + 1; j < newSize; j++) // Percorre apenas o triângulo superior da matriz
+                {
+                    if (weights[j] != "[0]")
+                    {
+                    // Extrai os pesos das arestas; where filtra os valores inteiros; select converte os valores para inteiros; toarray converte a sequência em um array
+                        var edgeWeights = weights[j].Trim('[', ']').Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Where(w => int.TryParse(w, out _))
+                            .Select(int.Parse)
+                            .ToArray();
+                        foreach (var weight in edgeWeights)
+                        {
+                            InsertEdge(ref newGraph, ref newSize, i, j, weight); // Utiliza InsertEdge para adicionar arestas
+                        }
+                    }
+                }
+            }
+            graph = newGraph;
+            size = newSize;
+            positions = new Point[size];
+            this.Invalidate(drawingArea);
+        }
+    }
+
+    private void ExportButton_Click(object sender, EventArgs e)
+    {
+        SaveFileDialog saveFileDialog = new SaveFileDialog();
+        saveFileDialog.Filter = "Text Files (*.txt)|*.txt|CSV Files (*.csv)|*.csv";
+        if (saveFileDialog.ShowDialog() == DialogResult.OK)
+        {
+            bool isCsv = saveFileDialog.FileName.EndsWith(".csv");
+            using (var writer = new System.IO.StreamWriter(saveFileDialog.FileName))
+            {
+                for (int i = 0; i < size; i++)
+                {
+                    for (int j = 0; j < size; j++)
+                    {
+                        if (graph[i][j].Count > 0)
+                        {
+                            var weights = string.Join(",", graph[i][j]);
+                            writer.Write($"[{weights}]");
+                        }
+                        else
+                        {
+                            writer.Write("[0]");
+                        }
+                        if (j < size - 1)
+                        {
+                            writer.Write(isCsv ? "," : " ");
+                        }
+                    }
+                    writer.WriteLine();
+                }
+            }
+        }
     }
 
     [STAThread] // Indica que o modelo de threading do aplicativo é single-threaded apartment (STA) - um modelo de threading que permite apenas uma thread por processo
