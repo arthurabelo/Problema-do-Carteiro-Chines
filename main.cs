@@ -787,20 +787,44 @@ public class PerformanceTestForm : Form
         var random = new Random();
         if (!int.TryParse(vertexCountInput.Text, out int vertexCount))
         {
-            MessageBox.Show("Entradas inválidas", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("Quantidade de vértices especificada é inválida", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
-        // Cria um grafo euleriano adicionando arestas de forma eficiente
+        // Cria um grafo euleriano
         int currentSize = 1;
         var localGraph = cpp.graph;
         for (int i = 0; i < vertexCount; i++)
         {
             cpp.InsertEdge(ref localGraph, ref currentSize, i, (i + 1) % vertexCount, random.Next(1, 100));
+            // O resto da divisão por vertexCount serve para conectar o último vértice ao primeiro
         }
-        cpp.graph = localGraph;
+        cpp.graph = localGraph; // Atualiza o grafo da janela principal
 
-        bool euleriano = cpp.EulerianGraph(cpp.graph, vertexCount);
+        // Transforma o grafo em não-euleriano de acordo com o número de vértices ímpares especificado
+        if (int.TryParse(oddVertexCountInput.Text, out int oddVertexCount) && oddVertexCount > 0 && oddVertexCount < vertexCount - 1)
+        {
+            if (oddVertexCount % 2 != 0)
+            {
+                MessageBox.Show("Quantidade de vértices ímpares deve ser par", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            var imparVertices = new int[oddVertexCount];
+            for (int i = 0; i < oddVertexCount/2; i++)
+            {
+                // As arestas a serem inseridas para tornar um par de vértices ímpares em pares são intercaladas de forma que vértices que já tenham grau ímpar não sejam conectados
+                // Se o vértice já existir em imparVertices, não deve ser conectado
+                int u, v;
+                do
+                {
+                    u = random.Next(0, vertexCount);
+                    v = random.Next(0, vertexCount);
+                } while (imparVertices.Contains(u) && imparVertices.Contains(v) || u == v || localGraph[u][v].Count > 0);
+                cpp.InsertEdge(ref localGraph, ref currentSize, u, v, random.Next(1, 100));
+                imparVertices[i] = u;
+                imparVertices[i + 1] = v;
+            }
+        }
 
         var stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
@@ -816,7 +840,7 @@ public class PerformanceTestForm : Form
         cpp.CleanUpMemory();
 
         // Atualiza o grafo na janela principal
-        mainForm.UpdateGraph(cpp.graph, vertexCount);
+        if (vertexCount <= 100) mainForm.UpdateGraph(cpp.graph, vertexCount);
     }
 
     private void UpdateChart()
