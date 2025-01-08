@@ -26,7 +26,7 @@ public class ChinesePostmanProblem : Form
     public ChinesePostmanProblem()
     {
         this.Text = "Problema do Carteiro Chinês";
-        this.Size = new Size(1000, 600); // Aumenta o tamanho da janela
+        this.Size = new Size(1000, 620); // Aumenta o tamanho da janela
         this.graph = CreateGraph(size); // Inicializa o grafo
         this.positions = new Point[size]; // Inicializa as posições dos vértices para desenho
 
@@ -63,7 +63,7 @@ public class ChinesePostmanProblem : Form
         exportButton.Click += ExportButton_Click;
         this.Controls.Add(exportButton);
 
-        performanceTestButton = new Button { Text = "Testar Performance", Location = new Point(10, 530), Size = new Size(150, 30) };
+        performanceTestButton = new Button { Text = "Testar Performance", Location = new Point(10, 540), Size = new Size(150, 30) };
         performanceTestButton.Click += PerformanceTestButton_Click;
         this.Controls.Add(performanceTestButton);
 
@@ -229,7 +229,7 @@ public class ChinesePostmanProblem : Form
         CleanUpMemory();
     }
 
-    private bool EulerianGraph(List<int>[][] graph, int size)
+    public bool EulerianGraph(List<int>[][] graph, int size)
     {
         int[] grau = new int[size]; // Cria um array de inteiros para armazenar o grau dos vértices
         for (int i = 0; i < size; i++) // Percorre as linhas do grafo
@@ -246,6 +246,7 @@ public class ChinesePostmanProblem : Form
     private void Hierholzer(List<int>[][] matriz, int size, int start)
     {
         var tempMatriz = matriz.Select(row => row.Select(col => col.ToList()).ToArray()).ToArray(); // Cria uma cópia da matriz
+        if (tempMatriz.Length == 0 || tempMatriz.All(row => row.All(col => col.Count == 0))) return; // Se a tempMatriz estiver vazia, retorna
         var stack = new Stack<int>(); // Cria uma pilha
         var hierholzerPath = new List<int>(); // Cria uma lista para armazenar o caminho de Hierholzer
 
@@ -731,7 +732,7 @@ public class PerformanceTestForm : Form
     private Button runTestButton;
     private TextBox resultOutput;
     private Chart performanceChart;
-    private List<long> executionTimes = new List<long>();
+    private List<(int vertexCount, long executionTime)> executionTimes = new List<(int, long)>();
 
     public PerformanceTestForm()
     {
@@ -773,61 +774,33 @@ public class PerformanceTestForm : Form
     private void RunTestButton_Click(object sender, EventArgs e)
     {
         cpp.CleanUpMemory();
-        if (!int.TryParse(vertexCountInput.Text, out int vertexCount) || !int.TryParse(oddVertexCountInput.Text, out int oddVertexCount))
+        var random = new Random();
+        if (!int.TryParse(vertexCountInput.Text, out int vertexCount))
         {
             MessageBox.Show("Entradas inválidas", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
-        var graph = cpp.CreateGraph(vertexCount);
+        var graph = cpp.CreateGraph(1);
 
-        // Adiciona vértices
-        var random = new Random();
+        // Cria um grafo euleriano adicionando arestas de forma eficiente
+        int currentSize = 1;
         for (int i = 0; i < vertexCount; i++)
         {
-            int u, v;
-            do
-            {
-                u = random.Next(vertexCount);
-                v = random.Next(vertexCount);
-            } while (u == v || graph[u][v].Count > 0); // Evita arestas duplas e laços
-
-            int weight = random.Next(1, 10);
-            cpp.InsertEdge(ref graph, ref vertexCount, u, v, weight);
+            cpp.InsertEdge(ref graph, ref currentSize, i, (i + 1) % vertexCount, random.Next(1, 100));
         }
 
-        // Ajusta o número de vértices ímpares
-        cpp.FindImparVertices(graph, vertexCount, out int[] imparVertices, out int imparCount);
-        while (imparCount != oddVertexCount)
-        {
-            int u = random.Next(vertexCount);
-            int v;
-            do
-            {
-                v = random.Next(vertexCount);
-            } while (u == v);
-
-            if (imparCount < oddVertexCount)
-            {
-                cpp.InsertEdge(ref graph, ref vertexCount, u, v, random.Next(1, 10));
-            }
-            else
-            {
-                cpp.DeleteEdge(ref graph, ref vertexCount, u, v);
-            }
-            cpp.FindImparVertices(graph, vertexCount, out imparVertices, out imparCount);
-        }
+        bool euleriano = cpp.EulerianGraph(graph, vertexCount);
 
         var stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
 
         cpp.ResolveCPP(graph, vertexCount, 0);
-        
+
         stopwatch.Stop();
 
-        long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
-        executionTimes.Add(elapsedMilliseconds);
-        resultOutput.Text = $"Tempo de execução: {elapsedMilliseconds} ms";
+        executionTimes.Add((vertexCount, stopwatch.ElapsedMilliseconds));
+        resultOutput.Text += $"Tempo de execução {vertexCount}: {stopwatch.ElapsedMilliseconds} ms    ";
 
         UpdateChart();
         cpp.CleanUpMemory();
@@ -836,9 +809,11 @@ public class PerformanceTestForm : Form
     private void UpdateChart()
     {
         performanceChart.Series["ExecutionTime"].Points.Clear();
-        for (int i = 0; i < executionTimes.Count; i++)
+        foreach (var (vertexCount, executionTime) in executionTimes)
         {
-            performanceChart.Series["ExecutionTime"].Points.AddXY(i + 1, executionTimes[i]);
+            performanceChart.Series["ExecutionTime"].Points.AddXY(vertexCount, executionTime);
+            performanceChart.Series["ExecutionTime"].Points.Last().MarkerStyle = MarkerStyle.Circle;
+            performanceChart.Series["ExecutionTime"].Points.Last().MarkerSize = 8;
         }
         performanceChart.Invalidate(); // Redesenha o gráfico
     }
