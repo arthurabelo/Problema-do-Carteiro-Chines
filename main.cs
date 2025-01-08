@@ -9,7 +9,7 @@ using System.Data.SqlClient;
 
 public class ChinesePostmanProblem : Form
 {
-    private List<int>[][] graph; // O grafo é uma matriz de listas de inteiros (lista de adjacência com lista que possibilita arestas paralelas)
+    public List<int>[][] graph; // O grafo é uma matriz de listas de inteiros (lista de adjacência com lista que possibilita arestas paralelas)
     private int size = 1; // Tamanho do grafo
     private double zoom = 1.0; // Zoom
     private int offsetX = 0, offsetY = 0; // Deslocamento
@@ -443,6 +443,14 @@ public class ChinesePostmanProblem : Form
         CleanUpMemory();
     }
 
+    public void UpdateGraph(List<int>[][] newGraph, int newSize)
+    {
+        this.graph = newGraph;
+        this.size = newSize;
+        this.positions = new Point[newSize];
+        this.Invalidate(drawingArea);
+    }
+
     private void HidePrompt()
     {
         // Esconde as caixas de texto e o botão de ação
@@ -710,7 +718,7 @@ public class ChinesePostmanProblem : Form
 
     private void PerformanceTestButton_Click(object sender, EventArgs e)
     {
-        var performanceTestForm = new PerformanceTestForm();
+        var performanceTestForm = new PerformanceTestForm(this);
         performanceTestForm.Show();
         CleanUpMemory();
     }
@@ -720,24 +728,26 @@ public class ChinesePostmanProblem : Form
     {
         Application.EnableVisualStyles(); // Habilita o estilo visual do aplicativo
         Application.SetCompatibleTextRenderingDefault(false); // Define o estilo de texto padrão como não compatível com o estilo visual
-        Application.Run(new ChinesePostmanProblem()); // Executa o aplicativo com o formulário do Problema do Carteiro Chinês
+        var mainForm = new ChinesePostmanProblem();
+        Application.Run(mainForm); // Executa o aplicativo com o formulário do Problema do Carteiro Chinês
     }
 }
 
 public class PerformanceTestForm : Form
 {
     ChinesePostmanProblem cpp = new ChinesePostmanProblem();
-
-    private TextBox vertexCountInput, oddVertexCountInput;
+    private ChinesePostmanProblem mainForm;
+    private TextBox vertexCountInput, oddVertexCountInput, resultOutput;
     private Button runTestButton;
-    private TextBox resultOutput;
     private Chart performanceChart;
-    private List<(int vertexCount, long executionTime)> executionTimes = new List<(int, long)>();
+    private List<(int vertexCount, long executionTime)> executionTimes = new List<(int vertexCount, long executionTime)>(); // List to store execution times
 
-    public PerformanceTestForm()
+    public PerformanceTestForm(ChinesePostmanProblem mainForm)
     {
+        this.mainForm = mainForm;
         this.Text = "Teste de Performance do Problema do Carteiro Chinês";
         this.Size = new Size(400, 500);
+        cpp.graph = cpp.CreateGraph(1);
 
         var vertexCountLabel = new Label { Text = "Quantidade de Vértices:", Location = new Point(10, 10), Size = new Size(150, 20) };
         this.Controls.Add(vertexCountLabel);
@@ -781,21 +791,21 @@ public class PerformanceTestForm : Form
             return;
         }
 
-        var graph = cpp.CreateGraph(1);
-
         // Cria um grafo euleriano adicionando arestas de forma eficiente
         int currentSize = 1;
+        var localGraph = cpp.graph;
         for (int i = 0; i < vertexCount; i++)
         {
-            cpp.InsertEdge(ref graph, ref currentSize, i, (i + 1) % vertexCount, random.Next(1, 100));
+            cpp.InsertEdge(ref localGraph, ref currentSize, i, (i + 1) % vertexCount, random.Next(1, 100));
         }
+        cpp.graph = localGraph;
 
-        bool euleriano = cpp.EulerianGraph(graph, vertexCount);
+        bool euleriano = cpp.EulerianGraph(cpp.graph, vertexCount);
 
         var stopwatch = new System.Diagnostics.Stopwatch();
         stopwatch.Start();
 
-        cpp.ResolveCPP(graph, vertexCount, 0);
+        cpp.ResolveCPP(cpp.graph, vertexCount, 0);
 
         stopwatch.Stop();
 
@@ -804,6 +814,9 @@ public class PerformanceTestForm : Form
 
         UpdateChart();
         cpp.CleanUpMemory();
+
+        // Atualiza o grafo na janela principal
+        mainForm.UpdateGraph(cpp.graph, vertexCount);
     }
 
     private void UpdateChart()
