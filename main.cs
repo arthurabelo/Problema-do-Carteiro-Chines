@@ -2,9 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
+using System.Windows.Forms.DataVisualization.Charting;
+using System.Data.SqlClient;
 
 public class ChinesePostmanProblem : Form
 {
@@ -20,6 +21,7 @@ public class ChinesePostmanProblem : Form
     private int? draggingVertex = null; // int? é um tipo de dado que aceita valores nulos
     private Rectangle drawingArea; // Área de desenho
     private TextBox pathOutput; // Caixa de texto para exibir o caminho
+    private Button performanceTestButton; // Botão para abrir a interface de testes de performance
 
     public ChinesePostmanProblem()
     {
@@ -60,6 +62,10 @@ public class ChinesePostmanProblem : Form
         var exportButton = new Button { Text = "Exportar Grafo", Location = new Point(10, 490), Size = new Size(150, 30) };
         exportButton.Click += ExportButton_Click;
         this.Controls.Add(exportButton);
+
+        performanceTestButton = new Button { Text = "Testar Performance", Location = new Point(10, 530), Size = new Size(150, 30) };
+        performanceTestButton.Click += PerformanceTestButton_Click;
+        this.Controls.Add(performanceTestButton);
 
         // Evento de rolagem do mouse
         this.MouseWheel += (sender, e) =>
@@ -135,7 +141,7 @@ public class ChinesePostmanProblem : Form
         };
     }
 
-    private List<int>[][] CreateGraph(int size) // Cria um grafo
+    public List<int>[][] CreateGraph(int size) // Cria um grafo
     {
         var graph = new List<int>[size][]; // Cria um array de listas de inteiros para representar o grafo
         for (int i = 0; i < size; i++) // Percorre as linhas do grafo
@@ -174,7 +180,14 @@ public class ChinesePostmanProblem : Form
         }
     }
 
-    private void InsertEdge(ref List<int>[][] graph, ref int size, int u, int v, int weight, bool isDuplicated = false)
+    public void CleanUpMemory()
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+    }
+
+    public void InsertEdge(ref List<int>[][] graph, ref int size, int u, int v, int weight, bool isDuplicated = false)
     {
         if (u >= size || v >= size) // Se o vértice u ou v não existir, então redimensiona o grafo
         {
@@ -184,9 +197,10 @@ public class ChinesePostmanProblem : Form
         }
         graph[u][v].Add(weight); // Adiciona a aresta entre os vértices u e v
         graph[v][u].Add(weight); // Adiciona a aresta entre os vértices v e u
+        CleanUpMemory();
     }
 
-    private void DeleteEdge(ref List<int>[][] graph, ref int size, int u, int v)
+    public void DeleteEdge(ref List<int>[][] graph, ref int size, int u, int v)
     {
         if (u >= size || v >= size) return; // Se o vértice u ou v não existir, então retorna e não faz nada
         if (graph[u][v].Count > 0) graph[u][v].RemoveAt(graph[u][v].Count - 1); // Remove a aresta entre os vértices u e v
@@ -212,6 +226,7 @@ public class ChinesePostmanProblem : Form
             ResizeGraph(ref graph, size, newSize); // Redimensiona o grafo
             size = newSize; // Atualiza o tamanho do grafo
         }
+        CleanUpMemory();
     }
 
     private bool EulerianGraph(List<int>[][] graph, int size)
@@ -266,6 +281,7 @@ public class ChinesePostmanProblem : Form
 
         Console.WriteLine("Hierholzer Path: " + string.Join(" ", hierholzerPath)); // Exibe o caminho de Hierholzer no console
         pathOutput.Text = string.Join(" -> ", hierholzerPath); // Exibe o caminho de Hierholzer na caixa de texto
+        CleanUpMemory();
     }
 
     private int FindMinIndex(int[] dist, bool[] visited)
@@ -285,7 +301,7 @@ public class ChinesePostmanProblem : Form
         return minIndex; // Retorna o índice do vértice com a menor distância
     }
 
-    private (int, List<int>) Dijkstra(List<int>[][] graph, int size, int orig, int dest, List<int> path)
+    private (int, int[]) Dijkstra(List<int>[][] graph, int size, int orig, int dest)
     {
         int[] dist = Enumerable.Repeat(int.MaxValue, size).ToArray(); // Cria um array de inteiros com o valor máximo do tamanho do grafo
         bool[] visited = new bool[size]; // Cria um array de booleanos com o tamanho do grafo
@@ -303,7 +319,7 @@ public class ChinesePostmanProblem : Form
                 Se o vértice não foi visitado, houver aresta entre os vértices u e v, a distância do vértice com a menor distância for diferente 
                 de infinito e a soma da distância do vértice com a menor distância com a aresta entre u -> v for menor do que a distância do vértice atual v
                  */
-                if (!visited[v] && graph[u][v].Count > 0 && dist[u] != int.MaxValue && dist[u] + graph[u][v].Min() < dist[v])
+                if (!visited[v] && u < graph.Length && v < graph[u].Length && graph[u][v].Count > 0 && dist[u] != int.MaxValue && dist[u] + graph[u][v].Min() < dist[v])
                 {
                     dist[v] = dist[u] + graph[u][v].Min(); // Atualiza a distância do vértice atual v à origem
                     prev[v] = u; // Atualiza o predecessor do vértice atual v
@@ -312,40 +328,29 @@ public class ChinesePostmanProblem : Form
         }
 
         // Reconstrói o caminho do vértice de destino até o vértice de origem
-        path.Clear(); // Limpa o caminho
+        int[] path = new int[size];
+        int pathIndex = 0;
         for (int vert = dest; vert != orig; vert = prev[vert]) // Percorre o caminho do vértice de destino até o vértice de origem
         {
-            path.Add(vert); // Adiciona o vértice no caminho
+            if (pathIndex < path.Length)
+            {
+                path[pathIndex++] = vert; // Adiciona o vértice no caminho
+            }
         }
-        path.Add(orig); // Adiciona o vértice de origem no caminho
-        path.Reverse(); // Inverte o caminho para obter o caminho correto
+        if (pathIndex < path.Length)
+            {
+                path[pathIndex++] = orig; // Adiciona o vértice de origem no caminho
+            }
+        Array.Reverse(path, 0, pathIndex); // Inverte o caminho para obter o caminho correto
 
-        return (dist[dest], path); // Retorna a distância mínima e o caminho mínimo
+        CleanUpMemory();
+        return (dist[dest], path.Take(pathIndex).ToArray()); // Retorna a distância mínima e o caminho mínimo
     }
 
     // Calcula o matching mínimo perfeito
     private void MinCostPerfectMatching(List<int>[][] graph, int size, int[] imparVertices, int imparCount)
     {
-        var auxGraph = new int[imparCount, imparCount]; // Cria uma matriz de inteiros para armazenar o grafo auxiliar
-        var paths = new List<int>[imparCount, imparCount]; // Cria uma matriz de listas de inteiros para armazenar os caminhos mínimos
-
-        for (int i = 0; i < imparCount; i++)
-        {
-            for (int j = 0; j < imparCount; j++)
-            {
-                if (i != j) // Se os vértices forem diferentes
-                {
-                    var (cost, p) = Dijkstra(graph, size, imparVertices[i], imparVertices[j], new List<int>()); // Calcula o caminho mínimo entre os vértices ímpares
-                    auxGraph[i, j] = cost;  // Define o custo do caminho mínimo
-                    paths[i, j] = p;    // Define o caminho mínimo
-                }
-                else // Se os vértices forem iguais
-                {
-                    auxGraph[i, j] = int.MaxValue; // Define o custo como infinito
-                    paths[i, j] = new List<int>(); // Cria uma lista vazia
-                }
-            }
-        }
+        var paths = new int[imparCount, imparCount][]; // Cria uma matriz de arrays de inteiros para armazenar os caminhos mínimos
 
         var minCostPairs = new List<(int, int)>(); // Lista para armazenar os pares de vértices com menor custo
         var minTotalCost = int.MaxValue; // Inicializa o custo total mínimo como infinito
@@ -365,9 +370,11 @@ public class ChinesePostmanProblem : Form
 
             for (int i = 1; i < remaining.Count; i++)
             {
+                var (cost, p) = Dijkstra(graph, size, imparVertices[remaining[0]], imparVertices[remaining[i]]); // Calcula o caminho mínimo entre os vértices ímpares
+                paths[remaining[0], remaining[i]] = p; // Define o caminho mínimo
                 var newPairs = new List<(int, int)>(currentPairs) { (remaining[0], remaining[i]) }; // Adiciona um novo par de vértices
                 var newRemaining = remaining.Where((_, index) => index != 0 && index != i).ToList(); // Remove os vértices emparelhados da lista de vértices restantes
-                var newCost = currentCost + auxGraph[remaining[0], remaining[i]]; // Calcula o novo custo
+                var newCost = currentCost + cost; // Calcula o novo custo
 
                 FindPairs(newRemaining, newPairs, newCost); // Chama a função recursiva com os novos pares e vértices restantes
             }
@@ -377,12 +384,13 @@ public class ChinesePostmanProblem : Form
 
         foreach (var (x, y) in minCostPairs) // Para cada par de vértices com menor custo
         {
-            DuplicateEdges(graph, size, paths[x, y]); // Duplica as arestas do caminho mínimo entre os vértices x e y
+            DuplicateEdges(graph, size, paths[x, y].ToList()); // Duplica as arestas do caminho mínimo entre os vértices x e y
         }
+        CleanUpMemory();
     }
 
     // Encontra os vértices ímpares que tornam o gráfico não-euleriano
-    private void FindImparVertices(List<int>[][] graph, int size, out int[] imparVertices, out int imparCount)
+    public void FindImparVertices(List<int>[][] graph, int size, out int[] imparVertices, out int imparCount)
     {
         int[] graus = new int[size]; // Cria um array de inteiros para armazenar o grau dos vértices
         imparVertices = new int[size]; // Cria um array de inteiros para armazenar os vértices ímpares
@@ -409,12 +417,15 @@ public class ChinesePostmanProblem : Form
     {
         for (int k = 0; k < path.Count - 1; k++) // Percorre o caminho mínimo
         {
-            InsertEdge(ref graph, ref size, path[k], path[k + 1], graph[path[k]][path[k + 1]].Min(), true); // Adiciona a aresta duplicada entre os vértices k e k + 1
+            if (graph[path[k]][path[k + 1]].Any()) // Verifica se a lista não está vazia
+            {
+                InsertEdge(ref graph, ref size, path[k], path[k + 1], graph[path[k]][path[k + 1]].Min(), true); // Adiciona a aresta duplicada entre os vértices k e k + 1
+            }
         }
     }
 
     // Resolve o Problema do Carteiro Chinês
-    private void ResolveCPP(List<int>[][] graph, int size, int startVertex)
+    public void ResolveCPP(List<int>[][] graph, int size, int startVertex)
     {
         if (EulerianGraph(graph, size)) // Se o grafo for euleriano
         {
@@ -428,6 +439,7 @@ public class ChinesePostmanProblem : Form
             MinCostPerfectMatching(graph, size, imparVertices, imparCount);
             Hierholzer(graph, size, startVertex);
         }
+        CleanUpMemory();
     }
 
     private void HidePrompt()
@@ -489,6 +501,7 @@ public class ChinesePostmanProblem : Form
         }
         HidePrompt(); // Esconde as caixas de texto
         this.Invalidate(drawingArea); // Redesenha a área de desenho do grafo
+        CleanUpMemory();
     }
 
     private void PromptForInput(bool isAdd, bool isExecute)
@@ -657,6 +670,7 @@ public class ChinesePostmanProblem : Form
             positions = new Point[size];
             this.Invalidate(drawingArea);
         }
+        CleanUpMemory();
     }
 
     private void ExportButton_Click(object sender, EventArgs e)
@@ -690,6 +704,14 @@ public class ChinesePostmanProblem : Form
                 }
             }
         }
+        CleanUpMemory();
+    }
+
+    private void PerformanceTestButton_Click(object sender, EventArgs e)
+    {
+        var performanceTestForm = new PerformanceTestForm();
+        performanceTestForm.Show();
+        CleanUpMemory();
     }
 
     [STAThread] // Indica que o modelo de threading do aplicativo é single-threaded apartment (STA) - um modelo de threading que permite apenas uma thread por processo
@@ -698,5 +720,126 @@ public class ChinesePostmanProblem : Form
         Application.EnableVisualStyles(); // Habilita o estilo visual do aplicativo
         Application.SetCompatibleTextRenderingDefault(false); // Define o estilo de texto padrão como não compatível com o estilo visual
         Application.Run(new ChinesePostmanProblem()); // Executa o aplicativo com o formulário do Problema do Carteiro Chinês
+    }
+}
+
+public class PerformanceTestForm : Form
+{
+    ChinesePostmanProblem cpp = new ChinesePostmanProblem();
+
+    private TextBox vertexCountInput, oddVertexCountInput;
+    private Button runTestButton;
+    private TextBox resultOutput;
+    private Chart performanceChart;
+    private List<long> executionTimes = new List<long>();
+
+    public PerformanceTestForm()
+    {
+        this.Text = "Teste de Performance do Problema do Carteiro Chinês";
+        this.Size = new Size(400, 500);
+
+        var vertexCountLabel = new Label { Text = "Quantidade de Vértices:", Location = new Point(10, 10), Size = new Size(150, 20) };
+        this.Controls.Add(vertexCountLabel);
+
+        vertexCountInput = new TextBox { Location = new Point(220, 10), Size = new Size(100, 20) };
+        this.Controls.Add(vertexCountInput);
+
+        var oddVertexCountLabel = new Label { Text = "Quantidade de Vértices Ímpares:", Location = new Point(10, 40), Size = new Size(200, 20) };
+        this.Controls.Add(oddVertexCountLabel);
+
+        oddVertexCountInput = new TextBox { Location = new Point(220, 40), Size = new Size(100, 20) };
+        this.Controls.Add(oddVertexCountInput);
+
+        runTestButton = new Button { Text = "Executar Teste", Location = new Point(10, 70), Size = new Size(150, 30) };
+        runTestButton.Click += RunTestButton_Click;
+        this.Controls.Add(runTestButton);
+
+        resultOutput = new TextBox { Location = new Point(10, 110), Size = new Size(360, 150), Multiline = true, ReadOnly = true };
+        this.Controls.Add(resultOutput);
+
+        performanceChart = new Chart { Location = new Point(10, 270), Size = new Size(360, 200) };
+        var chartArea = new ChartArea();
+        performanceChart.ChartAreas.Add(chartArea);
+        var series = new Series
+        {
+            Name = "ExecutionTime",
+            Color = Color.Blue,
+            ChartType = SeriesChartType.Line
+        };
+        performanceChart.Series.Add(series);
+        this.Controls.Add(performanceChart);
+    }
+
+    private void RunTestButton_Click(object sender, EventArgs e)
+    {
+        cpp.CleanUpMemory();
+        if (!int.TryParse(vertexCountInput.Text, out int vertexCount) || !int.TryParse(oddVertexCountInput.Text, out int oddVertexCount))
+        {
+            MessageBox.Show("Entradas inválidas", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+
+        var graph = cpp.CreateGraph(vertexCount);
+
+        // Adiciona vértices
+        var random = new Random();
+        for (int i = 0; i < vertexCount; i++)
+        {
+            int u, v;
+            do
+            {
+                u = random.Next(vertexCount);
+                v = random.Next(vertexCount);
+            } while (u == v || graph[u][v].Count > 0); // Evita arestas duplas e laços
+
+            int weight = random.Next(1, 10);
+            cpp.InsertEdge(ref graph, ref vertexCount, u, v, weight);
+        }
+
+        // Ajusta o número de vértices ímpares
+        cpp.FindImparVertices(graph, vertexCount, out int[] imparVertices, out int imparCount);
+        while (imparCount != oddVertexCount)
+        {
+            int u = random.Next(vertexCount);
+            int v;
+            do
+            {
+                v = random.Next(vertexCount);
+            } while (u == v);
+
+            if (imparCount < oddVertexCount)
+            {
+                cpp.InsertEdge(ref graph, ref vertexCount, u, v, random.Next(1, 10));
+            }
+            else
+            {
+                cpp.DeleteEdge(ref graph, ref vertexCount, u, v);
+            }
+            cpp.FindImparVertices(graph, vertexCount, out imparVertices, out imparCount);
+        }
+
+        var stopwatch = new System.Diagnostics.Stopwatch();
+        stopwatch.Start();
+
+        cpp.ResolveCPP(graph, vertexCount, 0);
+        
+        stopwatch.Stop();
+
+        long elapsedMilliseconds = stopwatch.ElapsedMilliseconds;
+        executionTimes.Add(elapsedMilliseconds);
+        resultOutput.Text = $"Tempo de execução: {elapsedMilliseconds} ms";
+
+        UpdateChart();
+        cpp.CleanUpMemory();
+    }
+
+    private void UpdateChart()
+    {
+        performanceChart.Series["ExecutionTime"].Points.Clear();
+        for (int i = 0; i < executionTimes.Count; i++)
+        {
+            performanceChart.Series["ExecutionTime"].Points.AddXY(i + 1, executionTimes[i]);
+        }
+        performanceChart.Invalidate(); // Redesenha o gráfico
     }
 }
