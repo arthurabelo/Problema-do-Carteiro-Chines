@@ -27,7 +27,13 @@ plt.ylabel("Tempo de Execução (ms)")
 
 # Definir os ticks dos eixos
 plt.xticks(vertices)
-plt.yticks(tempos)
+from matplotlib.ticker import MaxNLocator
+
+plt.gca().yaxis.set_major_locator(MaxNLocator(nbins=10))
+
+# Adicionar anotações aos pontos do gráfico
+for i, txt in enumerate(tempos):
+    plt.annotate(f'{int(txt)}', (vertices[i], tempos[i]), fontsize=8, ha='right')
 
 # Ajustar a visibilidade dos ticks para evitar sobreposição
 plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
