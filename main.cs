@@ -636,7 +636,7 @@ public class ChinesePostmanProblem : Form
         DrawGraph(e.Graphics, graph, size, drawingArea, zoom, offsetX, offsetY); // Redesenha apenas a área de desenho
     }
 
-    private void ClearButton_Click(object sender, EventArgs e)
+    public void ClearButton_Click(object sender, EventArgs e)
     {
         graph = CreateGraph(1);
         size = 1;
@@ -793,6 +793,7 @@ public class PerformanceTestForm : Form
 
         // Cria um grafo euleriano
         int currentSize = 1;
+        cpp.graph = cpp.CreateGraph(1); // Clear the graph
         var localGraph = cpp.graph;
         for (int i = 0; i < vertexCount; i++)
         {
