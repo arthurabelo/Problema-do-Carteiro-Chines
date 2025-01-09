@@ -740,7 +740,7 @@ public class PerformanceTestForm : Form
     private TextBox vertexCountInput, oddVertexCountInput, resultOutput;
     private Button runTestButton;
     private Chart performanceChart;
-    private List<(int vertexCount, long executionTime)> executionTimes = new List<(int vertexCount, long executionTime)>(); // List to store execution times
+    private List<(int vertexCount, long executionTimes)> executionTimes = new List<(int vertexCount, long executionTimes)>(); // List to store execution times
 
     public PerformanceTestForm(ChinesePostmanProblem mainForm)
     {
@@ -826,16 +826,24 @@ public class PerformanceTestForm : Form
                 imparVertices[i + 1] = v;
             }
         }
+        // Cria uma cópia do grafo original para que as 10 execuções sejam feitas a partir desse grafo
+        var originalGraph = localGraph.Select(row => row.Select(col => col.ToList()).ToArray()).ToArray();
 
         var stopwatch = new System.Diagnostics.Stopwatch();
-        stopwatch.Start();
 
-        cpp.ResolveCPP(cpp.graph, vertexCount, 0);
-
-        stopwatch.Stop();
-
-        executionTimes.Add((vertexCount, stopwatch.ElapsedMilliseconds));
-        resultOutput.Text += $"Tempo de execução {vertexCount}: {stopwatch.ElapsedMilliseconds} ms    ";
+        var times = new List<long>();
+        for (int i = 0; i < 10; i++) // Executa o teste 10 vezes
+        {
+            localGraph = originalGraph.Select(row => row.Select(col => col.ToList()).ToArray()).ToArray(); // Restaura o grafo original
+            stopwatch.Restart(); // Reinicia o cronomêtro para 0 e inicia a contagem
+            cpp.ResolveCPP(localGraph, vertexCount, 0);
+            stopwatch.Stop();
+            times.Add(stopwatch.ElapsedMilliseconds);
+        }
+        cpp.graph = localGraph; // Atualiza o grafo da janela principal
+        long averageTime = (long)times.Average(); // Calcula o tempo médio de execução
+        executionTimes.Add((vertexCount, averageTime)); // Adiciona o tempo médio de execução à lista
+        resultOutput.Text += $"Tempo de execução {vertexCount}: {averageTime} ms\n"; // Exibe o tempo médio de execução na caixa de texto
 
         UpdateChart();
         cpp.CleanUpMemory();
