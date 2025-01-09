@@ -827,14 +827,14 @@ public class PerformanceTestForm : Form
             }
         }
         // Cria uma cópia do grafo original para que as 10 execuções sejam feitas a partir desse grafo
-        var originalGraph = localGraph.Select(row => row.Select(col => col.ToList()).ToArray()).ToArray();
+        var originalGraph = localGraph.Select(row => row.Select(col => new List<int>(col)).ToArray()).ToArray();
 
         var stopwatch = new System.Diagnostics.Stopwatch();
 
         var times = new List<long>();
         for (int i = 0; i < 10; i++) // Executa o teste 10 vezes
         {
-            localGraph = originalGraph.Select(row => row.Select(col => col.ToList()).ToArray()).ToArray(); // Restaura o grafo original
+            localGraph = originalGraph.Select(row => row.Select(col => new List<int>(col)).ToArray()).ToArray(); // Restaura o grafo original
             stopwatch.Restart(); // Reinicia o cronomêtro para 0 e inicia a contagem
             cpp.ResolveCPP(localGraph, vertexCount, 0);
             stopwatch.Stop();
