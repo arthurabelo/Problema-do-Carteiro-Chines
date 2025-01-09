@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 
 # Ler o número de vértices ímpares
 num_vertices_impares = int(input("Informe o número de vértices ímpares do grafo: "))
@@ -27,13 +26,13 @@ plt.ylabel("Tempo de Execução (ms)")
 
 # Definir os ticks dos eixos
 plt.xticks(vertices)
-plt.yticks(tempos)
+from matplotlib.ticker import MaxNLocator
 
-# Ajustar a visibilidade dos ticks para evitar sobreposição
-plt.gca().xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x)}'))
-plt.gca().yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, _: f'{int(y)}'))
+plt.gca().yaxis.set_major_locator(MaxNLocator(nbins=10))
+
+# Adicionar anotações aos pontos do gráfico
+for i, txt in enumerate(tempos):
+    plt.annotate(f'{int(txt)}', (vertices[i], tempos[i]), fontsize=8, ha='right')
 
 # Exibir o gráfico
 plt.grid(True)
