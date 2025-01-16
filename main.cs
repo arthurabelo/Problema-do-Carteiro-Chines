@@ -25,8 +25,9 @@ public class ChinesePostmanProblem : Form
 
     public ChinesePostmanProblem()
     {
-        this.Text = "Problema do Carteiro Chinês";
-        this.Size = new Size(1000, 620); // Aumenta o tamanho da janela
+        this.Text = "Problema do Carteiro Chinês"; // Define o título da janela
+        var screenSize = Screen.PrimaryScreen.Bounds.Size; // Obtém o tamanho da tela
+        this.Size = new Size((int)(screenSize.Width * 0.7), (int)(screenSize.Height * 0.8)); // Ajusta o tamanho da janela proporcionalmente à resolução da tela
         this.graph = CreateGraph(size); // Inicializa o grafo
         this.positions = new Point[size]; // Inicializa as posições dos vértices para desenho
 
