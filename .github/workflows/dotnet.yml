@@ -1,6 +1,3 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: .NET
 
 on:
@@ -24,6 +21,8 @@ jobs:
       run: mkdir -p Postman
     - name: Restore dependencies
       run: dotnet restore
+    - name: Set EnableWindowsTargeting property
+      run: dotnet msbuild /p:EnableWindowsTargeting=true
     - name: Build
       run: dotnet build --no-restore
     - name: Test
