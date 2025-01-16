@@ -15,13 +15,11 @@ public class ChinesePostmanProblem : Form
     private int offsetX = 0, offsetY = 0; // Deslocamento
     private Point lastMousePos; // Posição do mouse
     private bool isDragging = false; // Indica se o mouse está sendo arrastado
-    private TextBox inputU, inputV, inputWeight, inputStart; // Caixas de texto para entrada de dados 
-    private Button actionButton; // Botão de ação
+    private TextBox inputU, inputV, inputWeight, inputStart, pathOutput, weightOutput; // Caixas de texto para entrada e saída de dados 
+    private Button actionButton, performanceTestButton; // Botão de ação e Botão para abrir a interface de testes de performance
     private Point[] positions; // Posições dos vértices
     private int? draggingVertex = null; // int? é um tipo de dado que aceita valores nulos
-    private Rectangle drawingArea; // Área de desenho
-    private TextBox pathOutput; // Caixa de texto para exibir o caminho
-    private Button performanceTestButton; // Botão para abrir a interface de testes de performance
+    private Rectangle drawingArea; // Área de desenho Botão para abrir a interface de testes de performance
 
     public ChinesePostmanProblem()
     {
@@ -49,12 +47,15 @@ public class ChinesePostmanProblem : Form
         this.Controls.Add(actionButton); // Adiciona o botão de ação
         actionButton.Visible = false; // Esconde o botão de ação inicialmente
 
-        var executeButton = new Button { Text = "Executar PCC", Location = new Point(10, 330), Size = new Size(150, 30) };
+        var executeButton = new Button { Text = "Executar PCC", Location = new Point(10, 260), Size = new Size(150, 30) };
         executeButton.Click += (sender, e) => PromptForInput(false, true);
         this.Controls.Add(executeButton);
 
-        pathOutput = new TextBox { Location = new Point(10, 370), Size = new Size(150, 30), ReadOnly = true }; // Inicializa a caixa de texto do caminho
+        pathOutput = new TextBox { Location = new Point(10, 300), Size = new Size(150, 60), ReadOnly = true }; // Inicializa a caixa de texto do caminho
         this.Controls.Add(pathOutput); // Adiciona a caixa de texto do caminho
+        
+        weightOutput = new TextBox { Location = new Point(10, 370), Size = new Size(150, 30), ReadOnly = true }; // Inicializa a caixa de texto do caminho
+        this.Controls.Add(weightOutput); // Adiciona a caixa de texto do peso para percorrer o caminho chinês
 
         var uploadButton = new Button { Text = "Upload Matriz", Location = new Point(10, 450), Size = new Size(150, 30) };
         uploadButton.Click += UploadButton_Click;
@@ -250,6 +251,7 @@ public class ChinesePostmanProblem : Form
         if (tempMatriz.Length == 0 || tempMatriz.All(row => row.All(col => col.Count == 0))) return; // Se a tempMatriz estiver vazia, retorna
         var stack = new Stack<int>(); // Cria uma pilha
         var hierholzerPath = new List<int>(); // Cria uma lista para armazenar o caminho de Hierholzer
+        int totalWeight = 0; // Inicializa o peso total do caminho
 
         stack.Push(start); // Empilha o vértice inicial
 
@@ -265,6 +267,7 @@ public class ChinesePostmanProblem : Form
 
                 if (tempMatriz[vertice][destino].Count > 0) // Verifica se a lista não está vazia antes de remover
                 {
+                    totalWeight += tempMatriz[vertice][destino][0]; // Adiciona o peso da aresta ao peso total
                     tempMatriz[vertice][destino].RemoveAt(0); // Remove a aresta entre os vértices vertice e destino da matriz temporária
                 }
                 if (tempMatriz[destino][vertice].Count > 0) // Verifica se a lista não está vazia antes de remover
@@ -283,6 +286,7 @@ public class ChinesePostmanProblem : Form
 
         Console.WriteLine("Hierholzer Path: " + string.Join(" ", hierholzerPath)); // Exibe o caminho de Hierholzer no console
         pathOutput.Text = string.Join(" -> ", hierholzerPath); // Exibe o caminho de Hierholzer na caixa de texto
+        weightOutput.Text = totalWeight.ToString(); // Exibe o peso total do caminho de Hierholzer na caixa de texto
         CleanUpMemory();
     }
 
