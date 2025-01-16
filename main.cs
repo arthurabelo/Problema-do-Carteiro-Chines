@@ -51,8 +51,8 @@ public class ChinesePostmanProblem : Form
         executeButton.Click += (sender, e) => PromptForInput(false, true);
         this.Controls.Add(executeButton);
 
-        pathOutput = new TextBox { Location = new Point(10, 300), Size = new Size(150, 60), ReadOnly = true }; // Inicializa a caixa de texto do caminho
-        this.Controls.Add(pathOutput); // Adiciona a caixa de texto do caminho
+        pathOutput = new TextBox { Location = new Point(10, 300), Size = new Size(150, 60), ReadOnly = true, Multiline = true, WordWrap = true }; // Inicializa a caixa de texto do caminho
+        this.Controls.Add(pathOutput);
         
         weightOutput = new TextBox { Location = new Point(10, 370), Size = new Size(150, 30), ReadOnly = true }; // Inicializa a caixa de texto do caminho
         this.Controls.Add(weightOutput); // Adiciona a caixa de texto do peso para percorrer o caminho chinês
